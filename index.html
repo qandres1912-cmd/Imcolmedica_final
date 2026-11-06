@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Imcolmédica · Dashboard financiero y EVA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>window.Chart||document.write('<script src="assets/vendor/chart.umd.js"><\/script>')</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>window.XLSX||document.write('<script src="assets/vendor/xlsx.full.min.js"><\/script>')</script>
+<style>
+:root{
+  --bg:#F1F2EF; --sf:#FFFFFF; --ink:#14202E; --ink2:#4A5866; --mut:#74808C; --ln:#DADFE3; --tint:#E9EEF3;
+  --navy:#14304D; --blue:#1F4E79; --teal:#2E9C8F; --ochre:#C9962B; --plum:#7A5C99; --sky:#A9BCD0;
+  --pos:#2F7D5B; --neg:#B3433F; --warn:#A9741A;
+  --serif:Georgia,"Times New Roman",serif;
+  --sans:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--ochre);outline-offset:2px}
+.sr{position:absolute;left:-9999px}
+
+/* Cabecera */
+header.top{background:var(--navy);color:#fff}
+.top-in{max-width:1440px;margin:0 auto;padding:18px 24px 0;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.brand h1{font:600 26px/1.15 var(--serif);margin:0;letter-spacing:.2px}
+.brand-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.logo-box{background:#fff;border-radius:6px;padding:6px 12px;display:inline-flex;align-items:center}
+.logo-box[hidden]{display:none}
+.logo-box img{display:block;max-height:46px;max-width:200px;width:auto;height:auto}
+.brand p{margin:4px 0 16px;color:#B9C7D6;font-size:13px}
+.meta{color:#B9C7D6;font-size:12px;text-align:right;margin-bottom:16px;line-height:1.6}
+.meta b{color:#fff;font-weight:600}
+nav.main{max-width:1440px;margin:0 auto;padding:0 24px;display:flex;gap:4px;flex-wrap:wrap}
+nav.main button{background:transparent;color:#B9C7D6;border:0;padding:10px 20px;font-weight:600;cursor:pointer;border-radius:6px 6px 0 0}
+nav.main button:hover{color:#fff}
+nav.main button[aria-selected=true]{background:var(--bg);color:var(--navy)}
+.sub{background:var(--sf);border-bottom:1px solid var(--ln);position:sticky;top:0;z-index:20}
+.sub-in{max-width:1440px;margin:0 auto;padding:0 24px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:thin}
+.sub button{background:transparent;border:0;border-bottom:3px solid transparent;padding:11px 14px;color:var(--ink2);cursor:pointer;white-space:nowrap;font-weight:500}
+.sub button:hover{color:var(--navy);background:var(--tint)}
+.sub button[aria-selected=true]{color:var(--navy);border-bottom-color:var(--ochre);font-weight:700}
+
+main{max-width:1440px;margin:0 auto;padding:22px 24px 60px}
+.page-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.page-h h2{font:600 22px var(--serif);margin:0;color:var(--navy)}
+.page-h p{margin:0;color:var(--mut);font-size:13px}
+
+/* Controles */
+.ctl{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;padding:12px 14px;background:var(--sf);border:1px solid var(--ln);border-radius:6px}
+.ctl label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mut)}
+.ctl select,.ctl input[type=text],.ctl input[type=password],.field{border:1px solid #C4CBD2;border-radius:5px;padding:6px 9px;background:#fff;min-width:140px;color:var(--ink)}
+.ctl input[type=range]{min-width:170px;accent-color:var(--blue)}
+.btn{border:1px solid var(--navy);background:var(--navy);color:#fff;border-radius:5px;padding:8px 16px;font-weight:600;cursor:pointer}
+.btn:hover{background:#0E2338}
+.btn.sec{background:#fff;color:var(--navy)}
+.btn.sec:hover{background:var(--tint)}
+.btn.warn{background:#fff;color:var(--neg);border-color:var(--neg)}
+.btn.warn:hover{background:#F7E6E5}
+.btn.ok{background:var(--pos);border-color:var(--pos)}
+.btn.ok:hover{background:#25664A}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* Tarjetas KPI */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--sf);border:1px solid var(--ln);border-left:4px solid var(--blue);border-radius:6px;padding:11px 14px}
+.kpi.t2{border-left-color:var(--teal)} .kpi.t3{border-left-color:var(--ochre)} .kpi.t4{border-left-color:var(--plum)}
+.kpi.bad{border-left-color:var(--neg)} .kpi.good{border-left-color:var(--pos)}
+.kpi .l{color:var(--mut);font-size:12.5px}
+.kpi .v{font:600 24px/1.25 var(--serif);color:var(--navy);font-variant-numeric:tabular-nums}
+.kpi .v small{font:500 13px var(--sans);color:var(--mut)}
+.kpi .s{font-size:12px;color:var(--ink2)}
+.up{color:var(--pos)} .dn{color:var(--neg)} .nt{color:var(--ink2)}
+
+/* Paneles y rejillas */
+.grid{display:grid;gap:16px;margin-bottom:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}
+.g21{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+@media(max-width:900px){.g21{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--sf);border:1px solid var(--ln);border-radius:6px;padding:16px;min-width:0}
+.panel h3{font:600 16px var(--serif);margin:0 0 2px;color:var(--navy)}
+.panel .hint{color:var(--mut);font-size:12.5px;margin:0 0 10px}
+.cbox{position:relative;height:310px}
+.cbox.tall{height:390px} .cbox.short{height:250px}
+.note{font-size:12px;color:var(--mut);margin-top:8px}
+.callout{border-left:4px solid var(--ochre);background:#FBF6EA;padding:10px 14px;border-radius:0 6px 6px 0;margin-bottom:16px;color:#4B3A14}
+.callout.info{border-left-color:var(--blue);background:#EDF2F7;color:var(--navy)}
+.formula{font-family:Georgia,serif;font-style:italic;color:var(--navy)}
+
+/* Tablas */
+.tw{overflow:auto;max-height:560px;border:1px solid var(--ln);border-radius:5px}
+table.tbl{width:100%;border-collapse:collapse;font-size:13px;background:#fff}
+.tbl th{position:sticky;top:0;background:var(--tint);text-align:right;padding:8px 10px;font-weight:600;color:var(--navy);border-bottom:1px solid var(--ln);white-space:nowrap;z-index:1}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl td{padding:6px 10px;border-bottom:1px solid #EDF0F2;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl td:first-child{white-space:normal;min-width:200px}
+.tbl tr:hover td{background:#F7F9FB}
+.tbl tr.l0 td{font-weight:700;background:#F3F6F9}
+.tbl tr.l1 td{font-weight:600}
+.tbl tr.l2 td:first-child{padding-left:28px;color:var(--ink2)}
+.tbl tr.l1 td:first-child{padding-left:18px}
+.tbl tr.err td{background:#FBECEB}
+.tbl td.txt{text-align:left;white-space:normal}
+.tbl th.txt{text-align:left}
+
+/* Insignias */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:11px;font-size:12px;font-weight:600;white-space:nowrap}
+.b-hi{background:#F6E0DF;color:#8A2E2A} .b-md{background:#F8EBCF;color:#7A5410} .b-lo{background:#DDEEE5;color:#1E5C42}
+.b-nt{background:#E6EAEE;color:#4A5866} .b-in{background:#DCE8F3;color:#1F4E79}
+
+/* Mapa de calor */
+table.heat{border-collapse:separate;border-spacing:2px;font-size:12.5px;width:100%}
+.heat th{padding:6px 8px;color:var(--navy);font-weight:600;text-align:center;background:transparent;position:static}
+.heat td{padding:9px 6px;text-align:center;border-radius:3px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.heat td.cur{outline:2px solid var(--navy);outline-offset:-2px;font-weight:700}
+
+/* Riesgos */
+.risk{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;padding:12px 14px;border:1px solid var(--ln);border-left-width:5px;border-radius:6px;background:#fff}
+.risk.hi{border-left-color:var(--neg)} .risk.md{border-left-color:var(--ochre)} .risk.lo{border-left-color:var(--pos)}
+.risk h4{margin:0;font:600 15px var(--serif);color:var(--navy)}
+.risk p{margin:2px 0;color:var(--ink2);font-size:13px}
+.risk .ev{color:var(--ink);font-size:13px}
+.risk-list{display:grid;gap:10px;grid-template-columns:minmax(0,1fr)} .risk>*{min-width:0;overflow-wrap:anywhere}
+
+/* Narrativa */
+.story h4{font:600 15px var(--serif);color:var(--navy);margin:14px 0 4px}
+.story h4:first-child{margin-top:0}
+.story p{margin:0;max-width:78ch;color:var(--ink)}
+.story ul{margin:4px 0 0;padding-left:18px;max-width:78ch}
+.story li{margin:3px 0}
+
+/* Administrador */
+.gate{max-width:420px;margin:40px auto;background:#fff;border:1px solid var(--ln);border-radius:8px;padding:26px}
+.gate h2{font:600 20px var(--serif);margin:0 0 6px;color:var(--navy)}
+.gate p{color:var(--ink2);margin:0 0 14px}
+.gate .field{width:100%;margin-bottom:10px}
+.err-msg{color:var(--neg);font-size:13px;min-height:18px}
+.drop{border:2px dashed #AEB9C4;border-radius:8px;background:#FAFBFC;padding:26px;text-align:center;color:var(--ink2);cursor:pointer;transition:background .15s,border-color .15s}
+.drop.over,.drop:hover{background:var(--tint);border-color:var(--blue)}
+.drop b{color:var(--navy)}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.radio{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0 0;font-size:13px}
+.radio label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.errlist{max-height:200px;overflow:auto;margin:6px 0 0;padding-left:18px;font-size:12.5px;color:#7C2B27}
+.warnlist{margin:6px 0 0;padding-left:18px;font-size:12.5px;color:#6B4A0E}
+.ok-txt{color:var(--pos);font-weight:600}
+.pill-row{display:flex;gap:8px;flex-wrap:wrap}
+details.dt{margin-top:10px} details.dt summary{cursor:pointer;color:var(--blue);font-weight:600}
+dialog{border:1px solid var(--ln);border-radius:8px;padding:22px;max-width:440px;box-shadow:0 12px 40px rgba(20,48,77,.25)}
+dialog::backdrop{background:rgba(20,32,46,.45)}
+dialog h3{font:600 18px var(--serif);margin:0 0 8px;color:var(--navy)}
+#toast{position:fixed;right:20px;bottom:20px;z-index:100;display:grid;gap:8px}
+.toast{background:var(--navy);color:#fff;padding:10px 16px;border-radius:6px;max-width:360px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.toast.bad{background:var(--neg)} .toast.good{background:var(--pos)}
+.banner{background:#FBECEB;color:#7C2B27;padding:10px 24px;font-size:13px;border-bottom:1px solid #EBC5C3}
+.empty{padding:30px;text-align:center;color:var(--mut)}
+footer{max-width:1440px;margin:0 auto;padding:0 24px 30px;color:var(--mut);font-size:12px}
+footer a{color:var(--mut);text-decoration:underline}
+footer a:hover{color:var(--navy)}
+@media(max-width:640px){main{padding:16px 14px 50px}.top-in,nav.main,.sub-in{padding-left:14px;padding-right:14px}.meta{text-align:left}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+@media print{.sub,nav.main,.ctl,#toast{display:none!important}.panel{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div id="cdnwarn"></div>
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <div class="brand-row"><span id="logoBox" class="logo-box" hidden><img id="logoImg" alt="Logo de Imcolmédica S.A."></span>
+      <h1>Imcolmédica S.A.</h1></div>
+      <p>Análisis financiero y creación de valor (EVA) · Estados financieros anuales individuales auditados · Cifras en millones de COP</p>
+    </div>
+    <div class="meta" id="metaBox" aria-live="polite"></div>
+  </div>
+</header>
+<div class="sub" id="subWrap"><div class="sub-in" role="tablist" aria-label="Vistas del dashboard" id="subNav"></div></div>
+<main id="view" tabindex="-1"></main>
+<footer id="foot"><p style="margin:0 0 6px">Fuente: Superintendencia de Sociedades – Estados Financieros IFRS (vía ISI Markets / EMIS). Los indicadores se recalculan en el navegador; ningún dato sale de este equipo.</p><p style="margin:0" id="adminLinks"></p></footer>
+<div id="toast" aria-live="polite"></div>
+<dialog id="dlg"><h3 id="dlgT"></h3><p id="dlgM"></p><div class="btnrow"><button class="btn sec" id="dlgNo">Cancelar</button><button class="btn warn" id="dlgYes">Confirmar</button></div></dialog>
+
+<script type="application/json" id="orig-data">{"estados": [{"Estado_Financiero": "Estado de Resultados", "Concepto": "Total Ingreso Operativo", "Año": 2024, "Valor": 47892.05, "Categoria": "Ingresos"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Total Ingreso Operativo", "Año": 2025, "Valor": 53277.04, "Categoria": "Ingresos"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Ingresos netos por ventas", "Año": 2024, "Valor": 47650.67, "Categoria": "Ingresos"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Ingresos netos por ventas", "Año": 2025, "Valor": 52845.11, "Categoria": "Ingresos"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Costo de mercancías vendidas", "Año": 2024, "Valor": -36111.93, "Categoria": "Costos"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Costo de mercancías vendidas", "Año": 2025, "Valor": -39738.12, "Categoria": "Costos"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Utilidad bruta", "Año": 2024, "Valor": 11538.74, "Categoria": "Rentabilidad"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Utilidad bruta", "Año": 2025, "Valor": 13106.99, "Categoria": "Rentabilidad"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Gastos de venta y distribución", "Año": 2024, "Valor": -5452.82, "Categoria": "Gastos Operativos"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Gastos de venta y distribución", "Año": 2025, "Valor": -6251.49, "Categoria": "Gastos Operativos"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Gastos administrativos", "Año": 2024, "Valor": -3295.84, "Categoria": "Gastos Operativos"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Gastos administrativos", "Año": 2025, "Valor": -3296.7, "Categoria": "Gastos Operativos"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Otros ingresos operativos", "Año": 2024, "Valor": 241.38, "Categoria": "Ingresos"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Otros ingresos operativos", "Año": 2025, "Valor": 431.93, "Categoria": "Ingresos"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Otros gastos operativos", "Año": 2024, "Valor": -322.9, "Categoria": "Gastos Operativos"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Otros gastos operativos", "Año": 2025, "Valor": -352.28, "Categoria": "Gastos Operativos"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Ganancia operativa (EBIT)", "Año": 2024, "Valor": 2708.55, "Categoria": "Rentabilidad"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Ganancia operativa (EBIT)", "Año": 2025, "Valor": 3638.45, "Categoria": "Rentabilidad"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "EBITDA", "Año": 2024, "Valor": 2925.48, "Categoria": "Rentabilidad"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "EBITDA", "Año": 2025, "Valor": 3863.84, "Categoria": "Rentabilidad"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Ingresos financieros", "Año": 2024, "Valor": 306.46, "Categoria": "Resultado Financiero"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Ingresos financieros", "Año": 2025, "Valor": 849.7, "Categoria": "Resultado Financiero"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Gastos financieros", "Año": 2024, "Valor": -1803.75, "Categoria": "Resultado Financiero"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Gastos financieros", "Año": 2025, "Valor": -2150.12, "Categoria": "Resultado Financiero"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Ganancias antes de impuestos", "Año": 2024, "Valor": 1211.26, "Categoria": "Rentabilidad"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Ganancias antes de impuestos", "Año": 2025, "Valor": 2338.04, "Categoria": "Rentabilidad"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Impuesto a la renta", "Año": 2024, "Valor": -503.26, "Categoria": "Impuestos"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Impuesto a la renta", "Año": 2025, "Valor": -714.13, "Categoria": "Impuestos"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Ganancia (Pérdida) Neta", "Año": 2024, "Valor": 708, "Categoria": "Rentabilidad"}, {"Estado_Financiero": "Estado de Resultados", "Concepto": "Ganancia (Pérdida) Neta", "Año": 2025, "Valor": 1623.91, "Categoria": "Rentabilidad"}, {"Estado_Financiero": "Balance General", "Concepto": "Activos Totales", "Año": 2024, "Valor": 75123.72, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Activos Totales", "Año": 2025, "Valor": 81404.64, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Activos no corrientes", "Año": 2024, "Valor": 26109.87, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Activos no corrientes", "Año": 2025, "Valor": 26950.28, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Propiedad, planta y equipo", "Año": 2024, "Valor": 23860.4, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Propiedad, planta y equipo", "Año": 2025, "Valor": 24651.25, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Activos intangibles y valor llave", "Año": 2024, "Valor": 728.64, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Activos intangibles y valor llave", "Año": 2025, "Valor": 718.64, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Cuentas por cobrar no corrientes", "Año": 2024, "Valor": 684.52, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Cuentas por cobrar no corrientes", "Año": 2025, "Valor": 500.07, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Activos financieros a largo plazo", "Año": 2024, "Valor": 0, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Activos financieros a largo plazo", "Año": 2025, "Valor": 0, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Activos diferidos", "Año": 2024, "Valor": 836.31, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Activos diferidos", "Año": 2025, "Valor": 1080.32, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Activos Corrientes", "Año": 2024, "Valor": 49013.85, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Activos Corrientes", "Año": 2025, "Valor": 54454.37, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Inventarios", "Año": 2024, "Valor": 34785.52, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Inventarios", "Año": 2025, "Valor": 36578.83, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Cuentas comerciales por cobrar", "Año": 2024, "Valor": 10287.1, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Cuentas comerciales por cobrar", "Año": 2025, "Valor": 12415.34, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Créditos de impuestos", "Año": 2024, "Valor": 3738.42, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Créditos de impuestos", "Año": 2025, "Valor": 4942.47, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Otros activos financieros corrientes", "Año": 2024, "Valor": 18.98, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Otros activos financieros corrientes", "Año": 2025, "Valor": 0, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Efectivo o Equivalentes", "Año": 2024, "Valor": 183.84, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Efectivo o Equivalentes", "Año": 2025, "Valor": 481.66, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Otros Activos Corrientes", "Año": 2024, "Valor": 0, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Otros Activos Corrientes", "Año": 2025, "Valor": 36.07, "Categoria": "Activos"}, {"Estado_Financiero": "Balance General", "Concepto": "Total de patrimonio", "Año": 2024, "Valor": 43174.37, "Categoria": "Patrimonio"}, {"Estado_Financiero": "Balance General", "Concepto": "Total de patrimonio", "Año": 2025, "Valor": 48090.29, "Categoria": "Patrimonio"}, {"Estado_Financiero": "Balance General", "Concepto": "Capital Suscrito", "Año": 2024, "Valor": 2700, "Categoria": "Patrimonio"}, {"Estado_Financiero": "Balance General", "Concepto": "Capital Suscrito", "Año": 2025, "Valor": 6700, "Categoria": "Patrimonio"}, {"Estado_Financiero": "Balance General", "Concepto": "Prima de emisión", "Año": 2024, "Valor": 1900, "Categoria": "Patrimonio"}, {"Estado_Financiero": "Balance General", "Concepto": "Prima de emisión", "Año": 2025, "Valor": 1900, "Categoria": "Patrimonio"}, {"Estado_Financiero": "Balance General", "Concepto": "Otras reservas", "Año": 2024, "Valor": 12265.24, "Categoria": "Patrimonio"}, {"Estado_Financiero": "Balance General", "Concepto": "Otras reservas", "Año": 2025, "Valor": 12265.24, "Categoria": "Patrimonio"}, {"Estado_Financiero": "Balance General", "Concepto": "Resultados acumulados", "Año": 2024, "Valor": 12236.46, "Categoria": "Patrimonio"}, {"Estado_Financiero": "Balance General", "Concepto": "Resultados acumulados", "Año": 2025, "Valor": 13152.37, "Categoria": "Patrimonio"}, {"Estado_Financiero": "Balance General", "Concepto": "Otros componentes del patrimonio", "Año": 2024, "Valor": 14072.67, "Categoria": "Patrimonio"}, {"Estado_Financiero": "Balance General", "Concepto": "Otros componentes del patrimonio", "Año": 2025, "Valor": 14072.67, "Categoria": "Patrimonio"}, {"Estado_Financiero": "Balance General", "Concepto": "Pasivos Totales", "Año": 2024, "Valor": 31949.34, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Pasivos Totales", "Año": 2025, "Valor": 33314.36, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Pasivos no corrientes", "Año": 2024, "Valor": 15449.18, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Pasivos no corrientes", "Año": 2025, "Valor": 16554.82, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Créditos y préstamos no corrientes", "Año": 2024, "Valor": 0, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Créditos y préstamos no corrientes", "Año": 2025, "Valor": 4343.07, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Otras cuentas por pagar no corrientes", "Año": 2024, "Valor": 12511.27, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Otras cuentas por pagar no corrientes", "Año": 2025, "Valor": 9202.84, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Pasivos no circulantes diferidos", "Año": 2024, "Valor": 2937.92, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Pasivos no circulantes diferidos", "Año": 2025, "Valor": 3008.92, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Pasivos Corrientes", "Año": 2024, "Valor": 16500.16, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Pasivos Corrientes", "Año": 2025, "Valor": 16759.54, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Créditos y préstamos corrientes", "Año": 2024, "Valor": 3036.06, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Créditos y préstamos corrientes", "Año": 2025, "Valor": 5816.41, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Cuentas Comerciales por pagar", "Año": 2024, "Valor": 11322.42, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Cuentas Comerciales por pagar", "Año": 2025, "Valor": 8086.89, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Provisiones para otros pasivos y gastos", "Año": 2024, "Valor": 461.53, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Provisiones para otros pasivos y gastos", "Año": 2025, "Valor": 0, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Otros pasivos corrientes", "Año": 2024, "Valor": 994.17, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Otros pasivos corrientes", "Año": 2025, "Valor": 1241.37, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Pasivos ctes por impuesto a la renta", "Año": 2024, "Valor": 685.98, "Categoria": "Pasivos"}, {"Estado_Financiero": "Balance General", "Concepto": "Pasivos ctes por impuesto a la renta", "Año": 2025, "Valor": 1614.87, "Categoria": "Pasivos"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Flujo neto de efectivo actividades de operación", "Año": 2024, "Valor": 6666.84, "Categoria": "Flujo Operativo"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Flujo neto de efectivo actividades de operación", "Año": 2025, "Valor": -9141.14, "Categoria": "Flujo Operativo"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Utilidad Neta", "Año": 2024, "Valor": 708, "Categoria": "Flujo Operativo"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Utilidad Neta", "Año": 2025, "Valor": 1623.91, "Categoria": "Flujo Operativo"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Depreciación y deterioro", "Año": 2024, "Valor": 216.93, "Categoria": "Flujo Operativo"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Depreciación y deterioro", "Año": 2025, "Valor": 225.39, "Categoria": "Flujo Operativo"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Cambios en: Inventarios", "Año": 2024, "Valor": 585.05, "Categoria": "Flujo Operativo"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Cambios en: Inventarios", "Año": 2025, "Valor": -1793.31, "Categoria": "Flujo Operativo"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Cambios en: cuentas por cobrar", "Año": 2024, "Valor": 2255.23, "Categoria": "Flujo Operativo"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Cambios en: cuentas por cobrar", "Año": 2025, "Valor": -3535.95, "Categoria": "Flujo Operativo"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Cambios en: cuentas por pagar", "Año": 2024, "Valor": 1670.39, "Categoria": "Flujo Operativo"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Cambios en: cuentas por pagar", "Año": 2025, "Valor": -6622.81, "Categoria": "Flujo Operativo"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Otros ajustes / otros flujos operativos", "Año": 2024, "Valor": 1230.24, "Categoria": "Flujo Operativo"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Otros ajustes / otros flujos operativos", "Año": 2025, "Valor": 961.63, "Categoria": "Flujo Operativo"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Flujo neto de efectivo actividades de inversión", "Año": 2024, "Valor": -52.35, "Categoria": "Flujo de Inversión"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Flujo neto de efectivo actividades de inversión", "Año": 2025, "Valor": -976.46, "Categoria": "Flujo de Inversión"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Compra de propiedad, planta y equipo", "Año": 2024, "Valor": -52.35, "Categoria": "Flujo de Inversión"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Compra de propiedad, planta y equipo", "Año": 2025, "Valor": -976.46, "Categoria": "Flujo de Inversión"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Flujo neto de efectivo actividades de financiación", "Año": 2024, "Valor": -7016.49, "Categoria": "Flujo de Financiación"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Flujo neto de efectivo actividades de financiación", "Año": 2025, "Valor": 10415.42, "Categoria": "Flujo de Financiación"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Emisión de acciones ordinarias", "Año": 2024, "Valor": 0, "Categoria": "Flujo de Financiación"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Emisión de acciones ordinarias", "Año": 2025, "Valor": 4000, "Categoria": "Flujo de Financiación"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Ingresos provenientes de préstamos", "Año": 2024, "Valor": 0, "Categoria": "Flujo de Financiación"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Ingresos provenientes de préstamos", "Año": 2025, "Valor": 7123.41, "Categoria": "Flujo de Financiación"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Reembolso de préstamos", "Año": 2024, "Valor": -674.74, "Categoria": "Flujo de Financiación"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Reembolso de préstamos", "Año": 2025, "Valor": 0, "Categoria": "Flujo de Financiación"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Dividendos pagados", "Año": 2024, "Valor": -1141.46, "Categoria": "Flujo de Financiación"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Dividendos pagados", "Año": 2025, "Valor": -708, "Categoria": "Flujo de Financiación"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Otros flujos de financiación", "Año": 2024, "Valor": -5200.29, "Categoria": "Flujo de Financiación"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Otros flujos de financiación", "Año": 2025, "Valor": 0, "Categoria": "Flujo de Financiación"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Aumento (disminución) neto en efectivo", "Año": 2024, "Valor": -402.01, "Categoria": "Flujo Neto"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Aumento (disminución) neto en efectivo", "Año": 2025, "Valor": 297.82, "Categoria": "Flujo Neto"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Efectivo al inicio del período", "Año": 2024, "Valor": 585.84, "Categoria": "Flujo Neto"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Efectivo al inicio del período", "Año": 2025, "Valor": 183.84, "Categoria": "Flujo Neto"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Efectivo al final del período", "Año": 2024, "Valor": 183.84, "Categoria": "Flujo Neto"}, {"Estado_Financiero": "Flujo de Efectivo", "Concepto": "Efectivo al final del período", "Año": 2025, "Valor": 481.66, "Categoria": "Flujo Neto"}], "eva": {"anios": {"2024": {"tasa": 0.35, "deuda": [{"e": "Davivienda", "m": 1500, "c": 0.2314}, {"e": "Bancolombia", "m": 800, "c": 0.213}, {"e": "Occidente", "m": 736.06, "c": 0.1822}, {"e": "Welch Allyn", "m": 0, "c": 0}], "socios": [{"s": "Alberto Ñustes", "m": 1700, "c": 0.43}, {"s": "Luisa Ñustes", "m": 1200, "c": 0.263}, {"s": "Jairo Gomez", "m": 1700, "c": 0.357}]}, "2025": {"tasa": 0.35, "deuda": [{"e": "Davivienda", "m": 2718, "c": 0.2517}, {"e": "Bancolombia", "m": 2236, "c": 0.2247}, {"e": "Occidente", "m": 862.41, "c": 0.1963}, {"e": "Welch Allyn", "m": 4343.07, "c": 0.4761}], "socios": [{"s": "Alberto Ñustes", "m": 2600, "c": 0.46}, {"s": "Luisa Ñustes", "m": 3000, "c": 0.2937}, {"s": "Jairo Gomez", "m": 3000, "c": 0.367}]}, "2026": {"tasa": 0.35, "deuda": [{"e": "Davivienda", "m": 2602, "c": 0.2382}, {"e": "Bancolombia", "m": 2103, "c": 0.2194}, {"e": "Occidente", "m": 936.9177, "c": 0.1902}, {"e": "Welch Allyn", "m": 4010, "c": 0.3538}], "socios": [{"s": "Alberto Ñustes", "m": 2600, "c": 0.36}, {"s": "Luisa Ñustes", "m": 3000, "c": 0.1937}, {"s": "Jairo Gomez", "m": 3000, "c": 0.267}]}}, "proy": {"act": 0.08, "deuda": -0.05, "dC": -0.03, "dNC": -0.02, "pat": 0.09, "aportes": 0, "ebit": 0.12}, "proyAnio": 2026, "notas": {"Activos Totales": "Histórico +8.4%. Se asume 8%.", "Obligaciones Financieras (Deuda con costo)": "Deuda ya aumentó fuerte en 2025. Se asume decrecimiento moderado 5%.", "- Créditos y préstamos corrientes": "Parte corriente creció 91,6% en 2025. Se proyecta ajuste a la baja del 3% por normalización del perfil de vencimientos.", "- Créditos y préstamos no corrientes": "En 2025 se originó deuda de largo plazo por 4.343. Se asume leve reducción del 2% por amortizaciones programadas con el proveedor welch allyn.", "Patrimonio Total": "Histórico +11.4% (incluye capitalización). Se asume 9%.", "Aportes de Socios": "Sin nuevos aportes de socios proyectados (0%): se mantiene el capital aportado en 2025.", "Utilidad Operativa EBIT": "Mejora de margen operativo esperada (histórico +34%). Conservador 12%.", "Impuesto a la Renta": "Conservador (histórico 2024 - 2025 - 2026)", "Weighted debt (Peso de la deuda ponderada)": "Disminuye por reducción proyectada de obligaciones financieras (-5%) y crecimiento del patrimonio (+9%).", "Weightted assets (activos ponderados)": "Aumenta como contraparte de la menor ponderación de deuda en la estructura de capital.", "Kost of debt (costo de la deuda ponderada)": "Baja por menor costo promedio de las obligaciones (Davivienda y Bancolombia reducen tasa efectiva).", "Ka (costo de los activos ponderado)": "Cae por ajuste a la baja en las TIO de los socios (Alberto, Luisa y Jairo) respecto a 2025.", "Componente de la Deuda": "Se reduce por menor peso de la deuda y ligera caída del costo de deuda después de impuestos.", "Componente del patrimonio.": "Desciende principalmente por la reducción del costo del patrimonio (Ka) en 2026.", "WACC": "Mejora (baja) por menor costo de capital propio y estructura menos apalancada respecto a 2025.", "NOPAT (Beneficio Operativo Neto después de Impuestos)": "Crece en línea con la proyección de EBIT (+12%), manteniendo tasa efectiva de impuestos del 35%.", "EVA (Valor Económico Agregado)": "La destrucción de valor se atenúa por menor WACC y mayor NOPAT; el capital invertido sigue generando retorno inferior al costo."}}, "analisis": [{"t": "A. Situación financiera actual (2025)", "p": "Patrimonio total de $48.090,29 MM (59,08% del activo), endeudamiento moderado y decreciente (40,92%, vs 42,53% en 2024), reforzado por una capitalización de $4.000 MM. Sin embargo, el efectivo disponible es apenas $481,66 MM frente a un pasivo corriente de $16.759,54 MM. La razón corriente es de 3,25x, pero descansa en inventarios ($36.578,83 MM) y en cartera y créditos de impuestos ($17.357,81 MM); la prueba ácida, que excluye inventarios, es de apenas 1,07x, señal de liquidez inmediata frágil pese a la solidez patrimonial."}, {"t": "B. Desempeño 2024 vs 2025", "p": "Los ingresos operativos pasaron de $47.892,05 MM (2024) a $53.277,04 MM (2025), un incremento de 11,24%. La utilidad neta dio un salto de $708 MM (2024, el peor registro del quinquenio) a $1.623,91 MM (2025, el mejor de la serie), un crecimiento de 129,4%. El margen bruto también mejoró (de 24,2% a 24,8% de las ventas netas), mientras el patrimonio creció de $43.174,37 MM a $48.090,29 MM gracias a la capitalización de 2025."}, {"t": "C. Impulsores de ingresos y costos", "p": "Ingresos: (1) demanda del mercado objetivo y poder adquisitivo de clientes, con 2024 como año de contracción y 2025 de reactivación; (2) estrategia comercial más agresiva en 2025, reflejada en un alza de 14,65% en gastos de venta y distribución. Costos: el costo de mercancías vendidas absorbe 74%-75% de los ingresos; en 2025 creció 10,04% (menos que el 11,24% de los ingresos), ampliando el margen bruto. El gasto financiero sigue siendo un impulsor relevante de costos, con $2.150,12 MM en 2025 vs $1.803,75 MM en 2024."}, {"t": "D. Administración del flujo de efectivo", "p": "En 2024 la compañía generó un flujo operativo positivo de $6.666,84 MM. En 2025 se invierte la tendencia: el flujo operativo cae a -$9.141,14 MM, el peor registro del período. Causa: inventarios +$1.793,31 MM y cuentas por cobrar +$3.535,95 MM (ambos consumen caja), mientras la reducción de cuentas por pagar restó $6.622,81 MM. La empresa pagó con mayor rapidez mientras cobraba con más lentitud. El déficit se cubrió con financiación externa por $10.415,42 MM (emisión de acciones $4.000 MM + nuevos préstamos $7.123,41 MM, menos dividendos), lo que permitió cerrar el año con un aumento neto de caja de $297,82 MM frente a una caída de -$402,01 MM en 2024. Es una gestión de supervivencia de corto plazo, no sostenible si se perpetúa."}, {"t": "E. Riesgos financieros significativos", "p": "1) Riesgo de liquidez: dependencia crítica de financiación externa para cubrir el ciclo operativo en 2025; vulnerable a un cierre de mercados crediticios o alzas de tasas.\n2) Riesgo de obsolescencia de inventarios: $36.578,83 MM inmovilizados en 2025 (vs $34.785,52 MM en 2024), cerca de la mitad del activo total, expuestos a pérdidas por castigos o rebajas.\n3) Riesgo de crédito y cartera: cuentas por cobrar comerciales crecieron de $10.287,10 MM (2024) a $12.415,34 MM (2025), un ritmo mayor que las ventas, señal de política de crédito laxa o clientes con dificultades de pago."}, {"t": "Conclusión", "p": "Imcolmédica logró en 2025 un hito patrimonial y de margen neto frente a 2024, pero a costa de descuidar el flujo de caja operativo y relajar las políticas de capital de trabajo. Los riesgos identificados son llamados de atención, no sentencias: con medidas correctivas en cobranza, rotación de inventarios y negociación con proveedores, la compañía puede reconducir la rentabilidad contable y la liquidez real hacia una misma dirección."}]}</script>
+<script type="application/json" id="orig-conf">{"built": "2026-10-29T20:45:00-05:00", "pw": {"sha": "d5cb937062a449acd51443cccbb4d5939b1dbe8fd7e7b38e35efd2fa42c681cc", "fnv": "7469fc65ba65c01e"}}</script>
+<script>
+'use strict';
+/* =====================================================================
+   IMCOLMÉDICA · DASHBOARD FINANCIERO Y EVA
+   Un solo archivo · sin servidor · Chart.js + SheetJS (CDN) + localStorage
+   ===================================================================== */
+
+/* ---------- Utilidades ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const isNum = v => typeof v === 'number' && isFinite(v);
+const fN = (v, d = 0) => !isNum(v) ? '—' : new Intl.NumberFormat('es-CO', {minimumFractionDigits: d, maximumFractionDigits: d}).format(v);
+const fP = (v, d = 1) => !isNum(v) ? '—' : fN(v * 100, d) + '%';
+const fX = (v, d = 2) => !isNum(v) ? '—' : fN(v, d) + 'x';
+const fDias = v => !isNum(v) ? '—' : fN(v, 0) + ' d';
+const fSign = (v, d = 0) => !isNum(v) ? '—' : (v > 0 ? '+' : '') + fN(v, d);
+const fPSign = (v, d = 1) => !isNum(v) ? '—' : (v > 0 ? '+' : '') + fN(v * 100, d) + '%';
+const fDate = iso => { try { return new Date(iso).toLocaleString('es-CO', {dateStyle: 'medium', timeStyle: 'short'}); } catch (e) { return iso || '—'; } };
+/* Variación porcentual relativa a la magnitud del valor base: (b − a) / |a|. Su signo siempre coincide con el de la variación absoluta (igual que el Excel de análisis). Nula si la base es 0 */
+const pctChg = (a, b) => (!isNum(a) || !isNum(b) || a === 0) ? null : (b - a) / Math.abs(a);
+const clone = o => JSON.parse(JSON.stringify(o));
+const sum = a => a.reduce((s, x) => s + (isNum(x) ? x : 0), 0);
+function toast(msg, kind = '') {
+  const t = document.createElement('div'); t.className = 'toast ' + kind; t.textContent = msg;
+  $('#toast').appendChild(t); setTimeout(() => t.remove(), 4200);
+}
+function askConfirm(title, msg, yes = 'Confirmar') {
+  return new Promise(res => {
+    const d = $('#dlg'); $('#dlgT').textContent = title; $('#dlgM').textContent = msg; $('#dlgYes').textContent = yes;
+    const done = v => { d.close(); $('#dlgYes').onclick = $('#dlgNo').onclick = null; res(v); };
+    $('#dlgYes').onclick = () => done(true); $('#dlgNo').onclick = () => done(false);
+    d.oncancel = () => res(false);
+    d.showModal();
+  });
+}
+
+/* ---------- Constantes del modelo ---------- */
+const ES = {BG: 'Balance General', ER: 'Estado de Resultados', FE: 'Flujo de Efectivo'};
+const C = {
+  bg: {act: 'Activos Totales', actNC: 'Activos no corrientes', ppe: 'Propiedad, planta y equipo', actC: 'Activos Corrientes', inv: 'Inventarios',
+       cxc: 'Cuentas comerciales por cobrar', efe: 'Efectivo o Equivalentes', pat: 'Total de patrimonio', pas: 'Pasivos Totales',
+       pasNC: 'Pasivos no corrientes', dNC: 'Créditos y préstamos no corrientes', pasC: 'Pasivos Corrientes', dC: 'Créditos y préstamos corrientes',
+       cxp: 'Cuentas Comerciales por pagar', cr: 'Créditos de impuestos'},
+  er: {ing: 'Total Ingreso Operativo', ventas: 'Ingresos netos por ventas', cogs: 'Costo de mercancías vendidas', bruta: 'Utilidad bruta',
+       gv: 'Gastos de venta y distribución', ga: 'Gastos administrativos', oi: 'Otros ingresos operativos', og: 'Otros gastos operativos',
+       ebit: 'Ganancia operativa (EBIT)', ebitda: 'EBITDA', ifin: 'Ingresos financieros', gf: 'Gastos financieros',
+       ebt: 'Ganancias antes de impuestos', imp: 'Impuesto a la renta', neta: 'Ganancia (Pérdida) Neta'},
+  fe: {cfo: 'Flujo neto de efectivo actividades de operación', ni: 'Utilidad Neta', dep: 'Depreciación y deterioro', dInv: 'Cambios en: Inventarios',
+       dCxc: 'Cambios en: cuentas por cobrar', dCxp: 'Cambios en: cuentas por pagar', otros: 'Otros ajustes / otros flujos operativos',
+       cfi: 'Flujo neto de efectivo actividades de inversión', capex: 'Compra de propiedad, planta y equipo',
+       cff: 'Flujo neto de efectivo actividades de financiación', neto: 'Aumento (disminución) neto en efectivo',
+       ini: 'Efectivo al inicio del período', fin: 'Efectivo al final del período'}
+};
+/* Nivel jerárquico para la presentación de tablas (0 total, 1 subtotal, 2 detalle) */
+const LEVEL = {};
+[[ES.BG, 0, ['act', 'pas', 'pat']], [ES.BG, 1, ['actNC', 'actC', 'pasNC', 'pasC']],
+ [ES.ER, 0, ['ing', 'bruta', 'ebit', 'ebt', 'neta']], [ES.ER, 1, ['ebitda']],
+ [ES.FE, 0, ['cfo', 'cfi', 'cff', 'fin']], [ES.FE, 1, ['neto', 'ini']]].forEach(([e, l, ks]) => {
+  const grp = e === ES.BG ? C.bg : e === ES.ER ? C.er : C.fe;
+  ks.forEach(k => LEVEL[e + '|' + norm(grp[k])] = l);
+});
+const lvl = (e, c) => LEVEL[e + '|' + norm(c)] ?? 2;
+const canonEstado = s => {
+  const n = norm(s);
+  if (n.includes('balance') || n.includes('situacion')) return ES.BG;
+  if (n.includes('resultado') || n.includes('p l') || n === 'pyl' || n.includes('perdidas')) return ES.ER;
+  if (n.includes('flujo')) return ES.FE;
+  return String(s ?? '').trim();
+};
+
+/* ---------- Esquemas de carga (validación de columnas) ---------- */
+const SCHEMAS = {
+  estados: {label: 'Estados financieros (Base de Datos)', sheets: ['base de datos', 'fact estadosfinancieros', 'fact estados financieros'],
+    cols: {Estado_Financiero: ['estado financiero', 'estado', 'estadofinanciero'], Concepto: ['concepto', 'cuenta'],
+           'Año': ['ano', 'anio', 'year', 'periodo'], Valor: ['valor', 'value', 'monto'], Categoria: ['categoria', 'category']},
+    required: ['Estado_Financiero', 'Concepto', 'Año', 'Valor'], key: ['Estado_Financiero', 'Concepto', 'Año']},
+  eva: {label: 'Parámetros EVA (deuda, socios, supuestos)', cols: {}, required: [], key: []},
+  analisis: {label: 'Análisis cualitativo', cols: {}, required: [], key: []}
+};
+/* Hojas conocidas que son derivadas o informativas: se reconocen pero no se cargan */
+const DERIVED_SHEETS = ['balance general', 'estado de resultados', 'flujo de efectivo', 'ratios financieros', 'comparativo', 'resumen ejecutivo',
+  'fact eva historico', 'fact eva 2026', 'fact escenarios 2026', 'fact sensibilidad 2026', 'fact balance', 'fact pyl', 'fact flujoefectivo', 'fact flujo efectivo', 'dim ano', 'guia dashboards powerbi'];
+
+/* ---------- Estado global ---------- */
+const LS = {data: 'imcol_data_v2', meta: 'imcol_meta_v2', pw: 'imcol_pw_v2', logo: 'imcol_logo_v2'};
+const ORIG = JSON.parse($('#orig-data').textContent);
+const CONF = JSON.parse($('#orig-conf').textContent);
+const ORIG_META = {lastModified: CONF.built, source: 'original', file: 'Datos originales (Excel de análisis)', history: []};
+const state = {data: clone(ORIG), meta: clone(ORIG_META), lsOK: true};
+let M = null; // modelo derivado
+const ui = {main: 'dash', sub: 'bg', bg: {y: 'all', cat: 'all', q: ''}, er: {y: 'all', cat: 'all', q: ''}, fe: {y: 'all', cat: 'all', q: ''}, rat: {g: 'all'},
+  cmp: {a: null, b: null, est: 'all', cat: 'all', q: '', ord: 'abs'}, evh: {y: null}, adm: {authed: false}};
+
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { state.lsOK = false; return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { state.lsOK = false; return false; } }
+function lsDel(k) { try { localStorage.removeItem(k); } catch (e) { state.lsOK = false; } }
+function loadStored() {
+  try {
+    const d = lsGet(LS.data), m = lsGet(LS.meta);
+    if (d) { const p = JSON.parse(d); if (p && Array.isArray(p.estados) && p.estados.length) state.data = Object.assign(clone(ORIG), p); }
+    if (m) state.meta = Object.assign(clone(ORIG_META), JSON.parse(m));
+  } catch (e) { console.warn('Datos almacenados inválidos; se usan los originales', e); state.data = clone(ORIG); state.meta = clone(ORIG_META); }
+}
+function persist() {
+  const ok1 = lsSet(LS.data, JSON.stringify(state.data)), ok2 = lsSet(LS.meta, JSON.stringify(state.meta));
+  return ok1 && ok2;
+}
+
+/* ---------- Cálculo EVA (metodología del archivo Excel de análisis) ----------
+   Kd  = Σ costo_i × monto_i / Σ monto_i   (obligaciones financieras por entidad)
+   Ke  = Σ TIO_j × aporte_j / Σ aporte_j    (aportes de los socios)
+   WACC = wd × Kd × (1 − t) + we × Ke       con wd = Deuda / (Deuda + Patrimonio)
+   NOPAT = EBIT × (1 − t) · EVA = NOPAT − (Deuda + Patrimonio) × WACC */
+const wAvg = (rows, kC) => { const t = sum(rows.map(r => r.m)); return t ? sum(rows.map(r => r.m * r[kC])) / t : 0; };
+function tablaPond(rows, kC) { const t = sum(rows.map(r => r.m)); return {total: t, rows: rows.map(r => Object.assign({}, r, {part: t ? r.m / t : 0, pond: t ? r[kC] * r.m / t : 0}))}; }
+function calcEVA(o) {
+  const ci = o.deuda + o.pat, wd = ci ? o.deuda / ci : 0, we = 1 - wd;
+  const td = tablaPond(o.deudaT, 'c'), ts = tablaPond(o.sociosT, 'c');
+  const kd = sum(td.rows.map(r => r.pond)), ke = sum(ts.rows.map(r => r.pond));
+  const cDeuda = wd * kd * (1 - o.tasa), cPat = we * ke, wacc = cDeuda + cPat;
+  const nopat = o.ebit * (1 - o.tasa), cargo = ci * wacc, eva = nopat - cargo, roic = ci ? nopat / ci : null;
+  return Object.assign({}, o, {ci, wd, we, kd, ke, cDeuda, cPat, wacc, nopat, cargo, eva, roic, spread: roic === null ? null : roic - wacc,
+    res: eva > 0 ? 'CREA VALOR' : 'DESTRUYE VALOR', deudaTP: td, sociosTP: ts});
+}
+const evaAt = (row, kd, ke) => row.nopat - row.ci * (row.wd * kd * (1 - row.tasa) + row.we * ke);
+
+/* ---------- Derivación del modelo completo ---------- */
+function buildModel(data) {
+  const m = {data, years: [], order: {}, cat: {}, idx: new Map()};
+  const seen = {};
+  data.estados.forEach(r => {
+    const e = canonEstado(r.Estado_Financiero), k = norm(r.Concepto);
+    m.idx.set(e + '|' + k + '|' + r.Año, r.Valor);
+    (seen[e] ??= new Set());
+    if (!seen[e].has(k)) { seen[e].add(k); (m.order[e] ??= []).push(r.Concepto); m.cat[e + '|' + k] = r.Categoria || ''; }
+  });
+  m.years = [...new Set(data.estados.map(r => r.Año))].sort((a, b) => a - b);
+  m.last = m.years[m.years.length - 1];
+  m.estados = Object.keys(m.order);
+  m.g = (e, c, y) => { const v = m.idx.get(e + '|' + norm(c) + '|' + y); return v === undefined ? null : v; };
+  m.has = (e, c) => m.years.some(y => m.g(e, c, y) !== null);
+  m.bg = (k, y) => m.g(ES.BG, C.bg[k], y); m.er = (k, y) => m.g(ES.ER, C.er[k], y); m.fe = (k, y) => m.g(ES.FE, C.fe[k], y);
+  m.deuda = y => { const a = m.bg('dC', y), b = m.bg('dNC', y); return (a === null && b === null) ? null : (a || 0) + (b || 0); };
+
+  /* EVA por año: años reales (estados + parámetros) y año proyectado (supuestos de crecimiento del Excel) */
+  const EV = data.eva || {anios: {}, proy: null, notas: {}};
+  m.evaNotas = {}; Object.keys(EV.notas || {}).forEach(k => m.evaNotas[norm(k)] = EV.notas[k]);
+  m.eva = []; m.evaSinParam = [];
+  m.years.forEach(y => {
+    const P = EV.anios && EV.anios[y], pat = m.bg('pat', y), deuda = m.deuda(y), ebit = m.er('ebit', y);
+    if (!P || !P.deuda || !P.deuda.length || !P.socios || !P.socios.length || !isNum(P.tasa)) { m.evaSinParam.push(y); return; }
+    if (pat === null || deuda === null || ebit === null) { m.evaSinParam.push(y); return; }
+    const r = calcEVA({Año: y, tipo: 'Real', act: m.bg('act', y), dC: m.bg('dC', y) ?? 0, dNC: m.bg('dNC', y) ?? 0, deuda, pat, aportes: sum(P.socios.map(s => s.m)),
+      ebit, ebitda: m.er('ebitda', y), tasa: P.tasa, deudaT: P.deuda, sociosT: P.socios});
+    m.eva.push(r);
+  });
+  m.evaBase = m.eva.length ? m.eva[m.eva.length - 1] : null;
+  m.evaProj = null; m.proj = m.last + 1;
+  const PP = EV.anios && EV.anios[m.proj], G = EV.proy;
+  if (m.evaBase && m.evaBase.Año === m.last && PP && G && PP.deuda && PP.socios && isNum(PP.tasa)) {
+    const b = m.evaBase, gr = k => (isNum(G[k]) ? G[k] : 0);
+    m.evaProj = calcEVA({Año: m.proj, tipo: 'Proyectado', act: b.act * (1 + gr('act')), dC: b.dC * (1 + gr('dC')), dNC: b.dNC * (1 + gr('dNC')), deuda: b.deuda * (1 + gr('deuda')),
+      pat: b.pat * (1 + gr('pat')), aportes: b.aportes * (1 + gr('aportes')), ebit: b.ebit * (1 + gr('ebit')), ebitda: null, tasa: PP.tasa, deudaT: PP.deuda, sociosT: PP.socios});
+  }
+  m.evaAll = m.eva.concat(m.evaProj ? [m.evaProj] : []);
+  m.analisis = Array.isArray(data.analisis) ? data.analisis : [];
+  /* Ratios */
+  m.ratios = buildRatios(m);
+  return m;
+}
+function buildRatios(m) {
+  const div = (a, b) => (isNum(a) && isNum(b) && b !== 0) ? a / b : null;
+  const A = (k, y) => m.bg(k, y), R = (k, y) => m.er(k, y), F = (k, y) => m.fe(k, y);
+  const abs = v => isNum(v) ? Math.abs(v) : null;
+  const ev = y => m.eva.find(r => r.Año === y);
+  return [
+    {g: 'Liquidez', id: 'rc', n: 'Razón corriente', fmt: 'x', better: 1, note: 'Activo corriente / Pasivo corriente', fn: y => div(A('actC', y), A('pasC', y))},
+    {g: 'Liquidez', id: 'pa', n: 'Prueba ácida', fmt: 'x', better: 1, note: '(Activo corriente − Inventarios) / Pasivo corriente', fn: y => div(isNum(A('actC', y)) && isNum(A('inv', y)) ? A('actC', y) - A('inv', y) : null, A('pasC', y))},
+    {g: 'Liquidez', id: 'kt', n: 'Capital de trabajo (M)', fmt: 'n', better: 1, note: 'Activo corriente − Pasivo corriente', fn: y => isNum(A('actC', y)) && isNum(A('pasC', y)) ? A('actC', y) - A('pasC', y) : null},
+    {g: 'Liquidez', id: 'ef', n: 'Razón de efectivo', fmt: 'x', better: 1, note: 'Efectivo / Pasivo corriente', fn: y => div(A('efe', y), A('pasC', y))},
+    {g: 'Endeudamiento', id: 'pa2', n: 'Endeudamiento total (Pasivo/Activo)', fmt: 'p', better: -1, note: 'Pasivos totales / Activos totales', fn: y => div(A('pas', y), A('act', y))},
+    {g: 'Endeudamiento', id: 'aut', n: 'Autonomía patrimonial (Patrimonio/Activo)', fmt: 'p', better: 1, note: 'Patrimonio / Activos totales', fn: y => div(A('pat', y), A('act', y))},
+    {g: 'Endeudamiento', id: 'ap', n: 'Apalancamiento (Pasivo/Patrimonio)', fmt: 'x', better: -1, note: 'Pasivos totales / Patrimonio', fn: y => div(A('pas', y), A('pat', y))},
+    {g: 'Endeudamiento', id: 'dp', n: 'Deuda financiera / Patrimonio', fmt: 'p', better: -1, note: '(Créditos corrientes + no corrientes) / Patrimonio', fn: y => div(m.deuda(y), A('pat', y))},
+    {g: 'Endeudamiento', id: 'de', n: 'Deuda financiera / EBITDA', fmt: 'x', better: -1, note: 'Años de EBITDA para cubrir la deuda financiera', fn: y => div(m.deuda(y), R('ebitda', y))},
+    {g: 'Endeudamiento', id: 'ci', n: 'Cobertura de intereses (EBIT / gastos fin.)', fmt: 'x', better: 1, note: 'Ganancia operativa / |Gastos financieros|', fn: y => div(R('ebit', y), abs(R('gf', y)))},
+    {g: 'Rentabilidad', id: 'mb', n: 'Margen bruto', fmt: 'p', better: 1, note: 'Utilidad bruta / Ingresos netos por ventas', fn: y => div(R('bruta', y), R('ventas', y))},
+    {g: 'Rentabilidad', id: 'me', n: 'Margen EBITDA', fmt: 'p', better: 1, note: 'EBITDA / Total ingreso operativo', fn: y => div(R('ebitda', y), R('ing', y))},
+    {g: 'Rentabilidad', id: 'mo', n: 'Margen operativo (EBIT)', fmt: 'p', better: 1, note: 'EBIT / Total ingreso operativo', fn: y => div(R('ebit', y), R('ing', y))},
+    {g: 'Rentabilidad', id: 'mn', n: 'Margen neto', fmt: 'p', better: 1, note: 'Utilidad neta / Total ingreso operativo', fn: y => div(R('neta', y), R('ing', y))},
+    {g: 'Rentabilidad', id: 'roa', n: 'ROA', fmt: 'p', better: 1, note: 'Utilidad neta / Activos totales (cierre)', fn: y => div(R('neta', y), A('act', y))},
+    {g: 'Rentabilidad', id: 'roe', n: 'ROE', fmt: 'p', better: 1, note: 'Utilidad neta / Patrimonio (cierre)', fn: y => div(R('neta', y), A('pat', y))},
+    {g: 'Rentabilidad', id: 'roic', n: 'ROIC', fmt: 'p', better: 1, note: 'NOPAT / Capital invertido (deuda + patrimonio)', fn: y => ev(y) ? ev(y).roic : null},
+    {g: 'Eficiencia', id: 'dio', n: 'Días de inventario', fmt: 'd', better: -1, note: 'Inventarios / |Costo de ventas| × 365', fn: y => { const v = div(A('inv', y), abs(R('cogs', y))); return v === null ? null : v * 365; }},
+    {g: 'Eficiencia', id: 'dso', n: 'Días de cartera', fmt: 'd', better: -1, note: 'Cuentas comerciales por cobrar / Total ingreso operativo × 365', fn: y => { const v = div(A('cxc', y), R('ing', y)); return v === null ? null : v * 365; }},
+    {g: 'Eficiencia', id: 'dpo', n: 'Días de proveedores', fmt: 'd', better: 0, note: 'Cuentas por pagar comerciales / |Costo de ventas| × 365', fn: y => { const v = div(A('cxp', y), abs(R('cogs', y))); return v === null ? null : v * 365; }},
+    {g: 'Eficiencia', id: 'cce', n: 'Ciclo de conversión de efectivo', fmt: 'd', better: -1, note: 'Días inventario + Días cartera − Días proveedores', fn: y => {
+      const a = div(A('inv', y), abs(R('cogs', y))), b = div(A('cxc', y), R('ing', y)), c = div(A('cxp', y), abs(R('cogs', y)));
+      return (a === null || b === null || c === null) ? null : (a + b - c) * 365; }},
+    {g: 'Eficiencia', id: 'ra', n: 'Rotación de activos', fmt: 'x', better: 1, note: 'Total ingreso operativo / Activos totales', fn: y => div(R('ing', y), A('act', y))},
+    {g: 'Flujo', id: 'fe', n: 'Flujo operativo / EBITDA', fmt: 'p', better: 1, note: 'Conversión de EBITDA en caja operativa', fn: y => div(F('cfo', y), R('ebitda', y))},
+    {g: 'Flujo', id: 'fm', n: 'Flujo operativo / Ingresos', fmt: 'p', better: 1, note: 'Flujo neto operativo / Total ingreso operativo', fn: y => div(F('cfo', y), R('ing', y))},
+    {g: 'Flujo', id: 'fn', n: 'Flujo operativo / Utilidad neta', fmt: 'x', better: 1, note: 'Calidad de la utilidad en términos de caja', fn: y => div(F('cfo', y), R('neta', y))}
+  ];
+}
+const fmtR = (r, v) => r.fmt === 'x' ? fX(v) : r.fmt === 'p' ? fP(v) : r.fmt === 'd' ? fDias(v) : fN(v, 0);
+
+/* Controles de integridad contable */
+function integrity(m) {
+  const out = [], tol = 1.5;
+  const chk = (name, y, a, b, expl) => {
+    if (![a, b].every(isNum)) { out.push({name, y, status: 'nd', diff: null, expl}); return; }
+    const d = a - b; out.push({name, y, status: Math.abs(d) <= tol ? 'ok' : 'fail', diff: d, expl});
+  };
+  const s = (...v) => v.some(x => x === null) ? null : sum(v);
+  m.years.forEach(y => {
+    const B = k => m.bg(k, y), R = k => m.er(k, y), F = k => m.fe(k, y);
+    chk('Activo = Pasivo + Patrimonio', y, B('act'), s(B('pas'), B('pat')), 'Ecuación contable');
+    chk('Activo = Corriente + No corriente', y, B('act'), s(B('actC'), B('actNC')), 'Subtotales del activo');
+    chk('Utilidad bruta = Ventas + Costo', y, R('bruta'), s(R('ventas'), R('cogs')), 'Margen bruto');
+    chk('EBIT = Bruta − gastos operativos', y, R('ebit'), s(R('bruta'), R('gv'), R('ga'), R('oi'), R('og')), 'Resultado operativo');
+    chk('EBT = EBIT + resultado financiero', y, R('ebt'), s(R('ebit'), R('ifin'), R('gf')), 'Antes de impuestos');
+    chk('Utilidad neta = EBT − Impuesto', y, R('neta'), s(R('ebt'), R('imp')), 'Resultado neto');
+    chk('Utilidad neta (P&G) = Utilidad neta (Flujo)', y, R('neta'), F('ni'), 'Consistencia entre estados');
+    chk('Flujo operativo = suma de componentes', y, F('cfo'), s(F('ni'), F('dep'), F('dInv'), F('dCxc'), F('dCxp'), F('otros')), 'Detalle del flujo operativo');
+    chk('Δ Efectivo = Operación + Inversión + Financiación', y, F('neto'), s(F('cfo'), F('cfi'), F('cff')), 'Flujo neto');
+    chk('Efectivo final = inicial + Δ', y, F('fin'), s(F('ini'), F('neto')), 'Conciliación de caja');
+    chk('Efectivo final (Flujo) = Efectivo (Balance)', y, F('fin'), B('efe'), 'Consistencia entre estados');
+  });
+  (m.evaAll || []).forEach(r => {
+    chk('EVA: créditos corrientes + no corrientes = deuda con costo', r.Año, r.dC + r.dNC, r.deuda, 'Insumo del EVA');
+    chk('EVA: tabla de obligaciones por entidad = deuda con costo', r.Año, r.deudaTP.total, r.deuda, 'Insumo del EVA');
+    if (r.tipo === 'Real') chk('EVA: aportes por socio = capital suscrito + prima de emisión', r.Año, r.sociosTP.total, s(m.g(ES.BG, 'Capital Suscrito', r.Año), m.g(ES.BG, 'Prima de emisión', r.Año)), 'Insumo del EVA');
+  });
+  return out;
+}
+
+/* ---------- Gráficos (Chart.js) ---------- */
+const PAL = ['#A9BCD0', '#1F4E79', '#2E9C8F', '#C9962B', '#7A5C99', '#8A8F98'];
+const POS = '#2F7D5B', NEG = '#B3433F', INK = '#14202E', GRID = '#E6EAEE', NAVY = '#14304D', OCHRE = '#C9962B', TEAL = '#2E9C8F', BLUE = '#1F4E79', SKY = '#A9BCD0', PLUM = '#7A5C99';
+const yCol = y => (M && y > M.last) ? OCHRE : PAL[Math.max(0, (M ? M.years.indexOf(y) : 0)) % PAL.length];
+const CH = {};
+const hasChart = () => typeof Chart !== 'undefined';
+if (hasChart()) {
+  Chart.defaults.font.family = '"Segoe UI",system-ui,sans-serif'; Chart.defaults.font.size = 12; Chart.defaults.color = '#4A5866';
+  Chart.defaults.borderColor = GRID; Chart.defaults.maintainAspectRatio = false; Chart.defaults.responsive = true;
+  Chart.defaults.plugins.legend.position = 'bottom';
+  Chart.defaults.plugins.legend.labels.usePointStyle = true; Chart.defaults.plugins.legend.labels.boxWidth = 8; Chart.defaults.plugins.legend.labels.padding = 14;
+  Chart.defaults.plugins.tooltip.backgroundColor = NAVY; Chart.defaults.plugins.tooltip.padding = 10; Chart.defaults.plugins.tooltip.cornerRadius = 4;
+  /* Plugin propio: etiquetas de valor selectivas sobre barras */
+  Chart.register({id: 'vlabels', afterDatasetsDraw(chart, a, o) {
+    if (!o || !o.fmt) return;
+    const ctx = chart.ctx; ctx.save(); ctx.font = '600 11px "Segoe UI",sans-serif'; ctx.fillStyle = INK; ctx.textAlign = 'center';
+    chart.data.datasets.forEach((ds, di) => {
+      if (o.only && !o.only.includes(di)) return;
+      const meta = chart.getDatasetMeta(di); if (meta.hidden) return;
+      meta.data.forEach((el, i) => {
+        let v = o.labels ? o.labels[i] : ds.data[i]; if (Array.isArray(v)) v = v[1] - v[0];
+        if (v === null || v === undefined || (o.labels && o.labels[i] === '')) return;
+        const txt = typeof v === 'string' ? v : o.fmt(v);
+        if (chart.options.indexAxis === 'y') { ctx.textAlign = 'left'; const x = Math.max(el.x, el.base) + 5; ctx.fillText(txt, x, el.y + 4); }
+        else { ctx.textAlign = 'center'; const top = Math.min(el.y, el.base); const val = Array.isArray(ds.data[i]) ? ds.data[i][1] : ds.data[i];
+          ctx.fillText(txt, el.x, (!o.labels && val < 0) ? Math.max(el.y, el.base) + 13 : top - 5); }
+      });
+    }); ctx.restore();
+  }});
+}
+function chart(id, cfg) {
+  if (CH[id]) { CH[id].destroy(); delete CH[id]; }
+  const el = document.getElementById(id); if (!el || !hasChart()) return;
+  CH[id] = new Chart(el, cfg);
+}
+function destroyCharts() { Object.keys(CH).forEach(k => { CH[k].destroy(); delete CH[k]; }); }
+const tick = f => ({callback: v => f(v)});
+const ax = (f, extra = {}) => Object.assign({grid: {color: GRID}, border: {display: false}, ticks: tick(f)}, extra);
+const axX = (extra = {}) => Object.assign({grid: {display: false}}, extra);
+const tipL = f => ({callbacks: {label: c => ` ${c.dataset.label ? c.dataset.label + ': ' : ''}${f(c.parsed.y ?? c.parsed.x)}`}});
+const bar = (label, data, color, extra = {}) => Object.assign({label, data, backgroundColor: color, borderRadius: 4, maxBarThickness: 46}, extra);
+const yAxisM = v => fN(v);
+function waterfall(steps) {
+  /* steps: {l, v, total} -> datos flotantes [inicio, fin] */
+  let cum = 0; const data = [], cols = [], labels = [], txt = [];
+  steps.forEach(s => {
+    if (s.total) { data.push([Math.min(0, s.v), Math.max(0, s.v)]); cum = s.v; cols.push(NAVY); }
+    else { const a = cum, b = cum + s.v; data.push([Math.min(a, b), Math.max(a, b)]); cum = b; cols.push(s.v >= 0 ? POS : NEG); }
+    labels.push(s.l); txt.push(fN(s.v));
+  });
+  return {data, cols, labels, txt};
+}
+function wfChart(id, steps, title) {
+  const w = waterfall(steps);
+  chart(id, {type: 'bar', data: {labels: w.labels, datasets: [{label: title, data: w.data, backgroundColor: w.cols, borderRadius: 3, maxBarThickness: 54}]},
+    options: {layout: {padding: {top: 18}}, plugins: {legend: {display: false}, vlabels: {fmt: fN, labels: w.txt},
+      tooltip: {callbacks: {label: c => ` ${w.txt[c.dataIndex]} M`}}}, scales: {y: ax(yAxisM), x: axX({ticks: {maxRotation: 0, autoSkip: false, font: {size: 11}}})}}});
+}
+
+/* ---------- Componentes HTML ---------- */
+function kpi(label, value, sub = '', cls = '', unit = '') {
+  return `<div class="kpi ${cls}"><div class="l">${esc(label)}</div><div class="v">${value}${unit ? ` <small>${unit}</small>` : ''}</div><div class="s">${sub}</div></div>`;
+}
+function deltaTxt(a, b, mode = 'pct') {
+  if (!isNum(a) || !isNum(b)) return '<span class="nt">sin base de comparación</span>';
+  const p = pctChg(a, b), d = b - a, cls = d > 0 ? 'up' : d < 0 ? 'dn' : 'nt', arrow = d > 0 ? '▲' : d < 0 ? '▼' : '■';
+  return `<span class="${cls}">${arrow} ${p === null ? fSign(d, 0) + ' M' : fPSign(p)}</span>`;
+}
+const sel = (id, opts, cur, label) => `<label>${esc(label)}<select id="${id}">${opts.map(([v, t]) => `<option value="${esc(v)}"${String(v) === String(cur) ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
+const yearOpts = (allLabel = 'Todos los años (comparativo)') => [['all', allLabel]].concat(M.years.map(y => [y, String(y)]));
+function pageHead(t, p) { return `<div class="page-h"><h2>${esc(t)}</h2><p>${p}</p></div>`; }
+function pairFor(selY) {
+  const y1 = (selY === 'all' || selY == null) ? M.last : +selY, i = M.years.indexOf(y1);
+  return {y1, y0: i > 0 ? M.years[i - 1] : null};
+}
+function badgeRisk(n) { return n === 'hi' ? '<span class="badge b-hi">▲ Alto</span>' : n === 'md' ? '<span class="badge b-md">◆ Medio</span>' : '<span class="badge b-lo">● Bajo</span>'; }
+function badgeVal(res) { return res === 'CREA VALOR' ? '<span class="badge b-lo">● Crea valor</span>' : '<span class="badge b-hi">▲ Destruye valor</span>'; }
+
+/* Tabla de un estado financiero (con análisis horizontal y vertical opcional) */
+function filtNames(est, cat, q) { return (M.order[est] || []).filter(c => (cat === 'all' || (M.cat[est + '|' + norm(c)] || '(sin categoría)') === cat) && (!q || norm(c).includes(norm(q)))); }
+const catsOf = est => ['all'].concat([...new Set((M.order[est] || []).map(c => M.cat[est + '|' + norm(c)] || '(sin categoría)'))]);
+const catOpts = est => catsOf(est).map(c => [c, c === 'all' ? 'Todas las categorías' : c]);
+/* Gráfico de las cuentas que dejan pasar los filtros (año, categoría, búsqueda): una barra por cuenta, una serie por año */
+function acctChart(canvasId, est, o) {
+  const {sel: ys = 'all', q = '', cat = 'all'} = o, {y1} = pairFor(ys), years = ys === 'all' ? M.years : [y1];
+  let names = filtNames(est, cat, q); const det = names.filter(c => lvl(est, c) >= 2); if (det.length) names = det;
+  names = names.filter(c => years.some(y => isNum(M.g(est, c, y)))).sort((a, b) => Math.abs(M.g(est, b, y1) ?? 0) - Math.abs(M.g(est, a, y1) ?? 0)).slice(0, 15);
+  chart(canvasId, {type: 'bar', data: {labels: names.map(c => c.length > 34 ? c.slice(0, 33) + '…' : c), datasets: years.map(y => bar(String(y), names.map(c => M.g(est, c, y)), yCol(y)))},
+    options: {indexAxis: 'y', plugins: {legend: {display: years.length > 1}, tooltip: tipL(v => fN(v) + ' M')}, scales: {x: ax(yAxisM), y: axX({ticks: {font: {size: 11}}})}}});
+  return names.length;
+}
+const acctPanel = (id, title, n) => `<div class="panel" style="margin-bottom:16px"><h3>${title}</h3><p class="hint">Se actualiza con los filtros de año, categoría y búsqueda · hasta 15 cuentas de mayor valor (M)</p>${n ? `<div class="cbox tall"><canvas id="${id}"></canvas></div>` : '<div class="empty">Sin cuentas para los filtros seleccionados.</div>'}</div>`;
+function stmtTable(est, o) {
+  const {sel: ys = 'all', q = '', cat = 'all', vertical = null} = o;
+  const {y1, y0} = pairFor(ys), cmp = ys === 'all' && y0 !== null;
+  const cols = ys === 'all' ? M.years : [y1];
+  const names = filtNames(est, cat, q);
+  if (!names.length) return '<div class="empty">Sin conceptos para los filtros seleccionados.</div>';
+  const head = `<tr><th>Concepto</th>${cols.map(y => `<th>${y}</th>`).join('')}${cmp ? `<th>Δ ${y0}→${y1}</th><th>Δ %</th>` : ''}${vertical ? `<th>% s/ ingresos ${y1}</th>` : ''}</tr>`;
+  const body = names.map(c => {
+    const v = y => M.g(est, c, y), a = cmp ? v(y0) : null, b = v(y1), l = lvl(est, c);
+    const d = (isNum(a) && isNum(b)) ? b - a : null, p = pctChg(a, b);
+    const ing = vertical ? M.er('ing', y1) : null;
+    return `<tr class="l${l}"><td>${esc(c)}</td>${cols.map(y => `<td>${fN(v(y), 1)}</td>`).join('')}${cmp ? `<td class="${d > 0 ? 'up' : d < 0 ? 'dn' : ''}">${fSign(d, 1)}</td><td class="${d > 0 ? 'up' : d < 0 ? 'dn' : ''}">${p === null ? (d === null ? '—' : 'n/s') : fPSign(p)}</td>` : ''}${vertical ? `<td>${isNum(ing) && isNum(b) && ing ? fP(b / ing) : '—'}</td>` : ''}</tr>`;
+  }).join('');
+  return `<div class="tw"><table class="tbl"><thead>${head}</thead><tbody>${body}</tbody></table></div><div class="note">${names.length} cuentas · Cifras en millones de COP. ${cmp ? 'Δ % = variación / |valor del año base|; «n/s» indica base cero.' : 'Vista de un solo año; elija «Todos los años» para ver variaciones.'}</div>`;
+}
+const resetBtn = '<button class="btn sec" id="rstF" type="button">Restablecer filtros</button>';
+function bindReset(obj, defaults) { const b = document.getElementById('rstF'); if (b) b.onclick = () => { Object.assign(obj, defaults); renderView(); }; }
+</script>
+<script>
+'use strict';
+/* =====================  PESTAÑAS DEL DASHBOARD (1/2)  ===================== */
+const view = () => $('#view');
+const bindSel = (id, obj, key, parse = v => v) => { const e = document.getElementById(id); if (e) e.onchange = () => { obj[key] = parse(e.value); renderView(); }; };
+const bindTxt = (id, obj, key) => { const e = document.getElementById(id); if (e) e.oninput = () => { obj[key] = e.value; renderView(); }; };
+const yParse = v => v === 'all' ? 'all' : +v;
+const ALPHA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${n >> 8 & 255},${n & 255},${a})`; };
+const noData = t => `<div class="callout">${esc(t)}</div>`;
+
+/* ---------- BALANCE GENERAL ---------- */
+function tabBG() {
+  const u = ui.bg, {y1, y0} = pairFor(u.y);
+  const cats = ['all'].concat([...new Set((M.order[ES.BG] || []).map(c => M.cat[ES.BG + '|' + norm(c)] || '(sin categoría)'))]);
+  if (!cats.includes(u.cat)) u.cat = 'all';
+  const kp = (k, f = M.bg) => [f(k, y1), y0 !== null ? f(k, y0) : null];
+  const mk = (l, [a, b], cls) => kpi(l, fN(a), (b !== null ? 'vs ' + y0 + ': ' + deltaTxt(b, a) : 'Cierre ' + y1), cls, 'M');
+  const kt = M.ratios.find(r => r.id === 'kt');
+  const html = pageHead('Balance General', `Situación financiera al cierre de ${y1}`) +
+    `<div class="ctl">${sel('bgY', yearOpts(), u.y, 'Año')}${sel('bgC', cats.map(c => [c, c === 'all' ? 'Todas las categorías' : c]), u.cat, 'Categoría')}
+      <label>Buscar cuenta<input type="text" id="bgQ" value="${esc(u.q)}" placeholder="p. ej. inventarios"></label>${resetBtn}</div>` +
+    `<div class="kpis">${mk('Activos totales', kp('act'))}${mk('Pasivos totales', kp('pas'), 't3')}${mk('Patrimonio', kp('pat'), 't2')}
+      ${mk('Deuda financiera', [M.deuda(y1), y0 !== null ? M.deuda(y0) : null], 't4')}${mk('Capital de trabajo', [kt.fn(y1), y0 !== null ? kt.fn(y0) : null], 't2')}</div>` +
+    `<div class="grid g2"><div class="panel"><h3>Estructura del balance</h3><p class="hint">Activo frente a fuentes de financiación (pasivo + patrimonio), en millones</p><div class="cbox"><canvas id="cBgS"></canvas></div></div>
+      <div class="panel"><h3>Composición del activo · ${y1}</h3><p class="hint">Participación sobre el activo total</p><div class="cbox"><canvas id="cBgD"></canvas></div></div></div>` +
+    (u.y === 'all' && y0 !== null ? `<div class="panel" style="margin-bottom:16px"><h3>Variación por cuenta · ${y0} → ${y1}</h3><p class="hint">Las 12 cuentas de detalle con mayor movimiento absoluto (M)</p><div class="cbox tall"><canvas id="cBgV"></canvas></div></div>` : '') +
+    acctPanel('cBgA', 'Cuentas del balance según los filtros', filtNames(ES.BG, u.cat, u.q).length) + `<div class="panel"><h3>Detalle del balance</h3><p class="hint">Sujeto a los filtros de año, categoría y búsqueda</p>${stmtTable(ES.BG, {sel: u.y, q: u.q, cat: u.cat})}</div>`;
+  view().innerHTML = html;
+  bindSel('bgY', u, 'y', yParse); bindSel('bgC', u, 'cat'); bindTxt('bgQ', u, 'q'); bindReset(u, {y: 'all', cat: 'all', q: ''});
+  /* Gráficos */
+  if (document.getElementById('cBgA')) acctChart('cBgA', ES.BG, {sel: u.y, q: u.q, cat: u.cat});
+  const ys = u.y === 'all' ? M.years : [y1], G = (k, y) => M.bg(k, y) ?? 0;
+  chart('cBgS', {type: 'bar', data: {labels: ys.map(String), datasets: [
+    bar('Activo corriente', ys.map(y => G('actC', y)), BLUE, {stack: 'a'}), bar('Activo no corriente', ys.map(y => G('actNC', y)), SKY, {stack: 'a'}),
+    bar('Pasivo corriente', ys.map(y => G('pasC', y)), OCHRE, {stack: 'f'}), bar('Pasivo no corriente', ys.map(y => G('pasNC', y)), '#E2C27A', {stack: 'f'}),
+    bar('Patrimonio', ys.map(y => G('pat', y)), TEAL, {stack: 'f'})]},
+    options: {plugins: {tooltip: tipL(v => fN(v) + ' M')}, scales: {y: ax(yAxisM, {stacked: true}), x: axX({stacked: true})}}});
+  const act = M.bg('act', y1), parts = [['Inventarios', 'inv', BLUE], ['Cuentas por cobrar', 'cxc', TEAL], ['Propiedad, planta y equipo', 'ppe', OCHRE], ['Efectivo', 'efe', PLUM]]
+    .map(([l, k, c]) => [l, M.bg(k, y1) ?? 0, c]);
+  const otros = (act ?? 0) - sum(parts.map(p => p[1])); parts.push(['Otros activos', Math.max(0, otros), SKY]);
+  chart('cBgD', {type: 'doughnut', data: {labels: parts.map(p => p[0]), datasets: [{data: parts.map(p => p[1]), backgroundColor: parts.map(p => p[2]), borderColor: '#fff', borderWidth: 2}]},
+    options: {cutout: '58%', plugins: {tooltip: {callbacks: {label: c => ` ${c.label}: ${fN(c.parsed)} M (${fP(act ? c.parsed / act : null)})`}}}}});
+  if (u.y === 'all' && y0 !== null) {
+    const rows = (M.order[ES.BG] || []).filter(c => lvl(ES.BG, c) === 2).map(c => ({c, d: (M.g(ES.BG, c, y1) ?? 0) - (M.g(ES.BG, c, y0) ?? 0)}))
+      .sort((a, b) => Math.abs(b.d) - Math.abs(a.d)).slice(0, 12);
+    chart('cBgV', {type: 'bar', data: {labels: rows.map(r => r.c), datasets: [{label: 'Variación', data: rows.map(r => r.d), backgroundColor: rows.map(r => r.d >= 0 ? POS : NEG), borderRadius: 3, maxBarThickness: 22}]},
+      options: {indexAxis: 'y', layout: {padding: {right: 56}}, plugins: {legend: {display: false}, vlabels: {fmt: v => fSign(v)}, tooltip: tipL(v => fSign(v) + ' M')}, scales: {x: ax(yAxisM), y: axX({ticks: {font: {size: 11}}})}}});
+  }
+}
+
+/* ---------- ESTADO DE RESULTADOS ---------- */
+function tabER() {
+  const u = ui.er, {y1, y0} = pairFor(u.y), g = (k, y = y1) => M.er(k, y);
+  if (!catsOf(ES.ER).includes(u.cat)) u.cat = 'all';
+  const R = id => M.ratios.find(r => r.id === id);
+  const mk = (l, k, cls, mid) => kpi(l, fN(g(k)), (y0 !== null ? 'vs ' + y0 + ': ' + deltaTxt(g(k, y0), g(k)) : 'Año ' + y1) + (mid ? `<br>Margen ${fP(R(mid).fn(y1))}` : ''), cls, 'M');
+  view().innerHTML = pageHead('Estado de Resultados', `Resultados del ejercicio ${y1}`) +
+    `<div class="ctl">${sel('erY', yearOpts(), u.y, 'Año')}${sel('erC', catOpts(ES.ER), u.cat, 'Categoría')}<label>Buscar cuenta<input type="text" id="erQ" value="${esc(u.q)}" placeholder="p. ej. gastos"></label>${resetBtn}</div>` +
+    `<div class="kpis">${mk('Ingresos operativos', 'ing')}${mk('Utilidad bruta', 'bruta', 't2', 'mb')}${mk('EBITDA', 'ebitda', 't3', 'me')}${mk('EBIT', 'ebit', 't4', 'mo')}${mk('Utilidad neta', 'neta', '', 'mn')}</div>` +
+    `<div class="grid g21"><div class="panel"><h3>Del ingreso a la utilidad neta · ${y1}</h3><p class="hint">Cascada de resultados, en millones. Azul: subtotales; verde: suma; rojo: resta</p><div class="cbox tall"><canvas id="cErW"></canvas></div></div>
+      <div class="panel"><h3>Márgenes por año</h3><p class="hint">Evolución completa; no depende del filtro de año. Bruto sobre ventas netas, resto sobre ingresos operativos</p><div class="cbox tall"><canvas id="cErM"></canvas></div></div></div>
+     <div class="grid g2"><div class="panel"><h3>Utilidades</h3><p class="hint">Bruta, EBITDA, EBIT y neta (M) según el filtro de año</p><div class="cbox short"><canvas id="cErU"></canvas></div></div>
+      <div class="panel"><h3>Estructura de gastos · ${y1}</h3><p class="hint">Participación sobre los ingresos operativos</p><div class="cbox short"><canvas id="cErG"></canvas></div></div></div>
+     ${acctPanel('cErA', 'Cuentas del estado de resultados según los filtros', filtNames(ES.ER, u.cat, u.q).length)}
+     <div class="panel"><h3>Detalle del estado de resultados</h3><p class="hint">Incluye análisis vertical sobre ingresos del año ${y1}</p>${stmtTable(ES.ER, {sel: u.y, q: u.q, cat: u.cat, vertical: true})}</div>`;
+  bindSel('erY', u, 'y', yParse); bindSel('erC', u, 'cat'); bindTxt('erQ', u, 'q'); bindReset(u, {y: 'all', cat: 'all', q: ''});
+  if (document.getElementById('cErA')) acctChart('cErA', ES.ER, {sel: u.y, q: u.q, cat: u.cat});
+  const z = k => g(k) ?? 0;
+  wfChart('cErW', [{l: 'Ingresos netos', v: z('ventas'), total: true}, {l: 'Costo de ventas', v: z('cogs')}, {l: 'Utilidad bruta', v: z('bruta'), total: true},
+    {l: 'Gastos de venta', v: z('gv')}, {l: 'Gastos admin.', v: z('ga')}, {l: 'Otros oper. (neto)', v: z('oi') + z('og')}, {l: 'EBIT', v: z('ebit'), total: true},
+    {l: 'Result. financiero', v: z('ifin') + z('gf')}, {l: 'Impuesto', v: z('imp')}, {l: 'Utilidad neta', v: z('neta'), total: true}], 'Resultados');
+  const mser = [['mb', 'Margen bruto', BLUE], ['me', 'Margen EBITDA', TEAL], ['mo', 'Margen operativo', OCHRE], ['mn', 'Margen neto', PLUM]];
+  chart('cErM', {type: 'line', data: {labels: M.years.map(String), datasets: mser.map(([id, l, c]) => ({label: l, data: M.years.map(y => R(id).fn(y)), borderColor: c, backgroundColor: c, borderWidth: 2, pointRadius: 4, pointBorderColor: '#fff', pointBorderWidth: 2, tension: .15}))},
+    options: {plugins: {tooltip: tipL(v => fP(v))}, scales: {y: ax(v => fP(v, 0)), x: axX()}}});
+  const ysE = u.y === 'all' ? M.years : [y1];
+  chart('cErU', {type: 'bar', data: {labels: ysE.map(String), datasets: [['bruta', 'Utilidad bruta', BLUE], ['ebitda', 'EBITDA', TEAL], ['ebit', 'EBIT', OCHRE], ['neta', 'Utilidad neta', PLUM]]
+    .map(([k, l, c]) => bar(l, ysE.map(y => g(k, y)), c))}, options: {plugins: {tooltip: tipL(v => fN(v) + ' M')}, scales: {y: ax(yAxisM), x: axX()}}});
+  const ing = g('ing'), gs = [['Costo de ventas', 'cogs', BLUE], ['Gastos de venta', 'gv', TEAL], ['Gastos admin.', 'ga', OCHRE], ['Otros gastos oper.', 'og', PLUM], ['Gastos financieros', 'gf', SKY], ['Impuesto', 'imp', '#8A8F98']];
+  chart('cErG', {type: 'bar', data: {labels: gs.map(x => x[0]), datasets: [{label: '% de ingresos', data: gs.map(x => ing ? Math.abs(g(x[1]) ?? 0) / ing : null), backgroundColor: gs.map(x => x[2]), borderRadius: 3, maxBarThickness: 22}]},
+    options: {indexAxis: 'y', layout: {padding: {right: 46}}, plugins: {legend: {display: false}, vlabels: {fmt: v => fP(v)}, tooltip: tipL(v => fP(v))}, scales: {x: ax(v => fP(v, 0)), y: axX()}}});
+}
+
+/* ---------- FLUJO DE EFECTIVO ---------- */
+function tabFE() {
+  const u = ui.fe, {y1, y0} = pairFor(u.y), g = (k, y = y1) => M.fe(k, y);
+  if (!catsOf(ES.FE).includes(u.cat)) u.cat = 'all';
+  const mk = (l, k, cls) => kpi(l, fN(g(k)), y0 !== null ? 'vs ' + y0 + ': ' + deltaTxt(g(k, y0), g(k)) : 'Año ' + y1, cls, 'M');
+  view().innerHTML = pageHead('Flujo de Efectivo', `Generación y uso de caja en ${y1}`) +
+    `<div class="ctl">${sel('feY', yearOpts(), u.y, 'Año')}${sel('feC', catOpts(ES.FE), u.cat, 'Categoría')}<label>Buscar cuenta<input type="text" id="feQ" value="${esc(u.q)}" placeholder="p. ej. inventarios"></label>${resetBtn}</div>` +
+    `<div class="kpis">${mk('Flujo de operación', 'cfo')}${mk('Flujo de inversión', 'cfi', 't3')}${mk('Flujo de financiación', 'cff', 't2')}${mk('Variación neta de efectivo', 'neto', 't4')}${mk('Efectivo al final', 'fin')}</div>` +
+    `<div class="grid g2"><div class="panel"><h3>Cascada del efectivo · ${y1}</h3><p class="hint">Del efectivo inicial al final, por tipo de actividad (M)</p><div class="cbox"><canvas id="cFeW"></canvas></div></div>
+      <div class="panel"><h3>Flujos por actividad</h3><p class="hint">Operación, inversión, financiación y variación neta (M) según el filtro de año</p><div class="cbox"><canvas id="cFeA"></canvas></div></div></div>
+     <div class="panel" style="margin-bottom:16px"><h3>Qué explica el flujo operativo · ${y1}</h3><p class="hint">Partidas que componen el flujo de operación (M)</p><div class="cbox"><canvas id="cFeC"></canvas></div></div>
+     ${acctPanel('cFeD', 'Cuentas del flujo de efectivo según los filtros', filtNames(ES.FE, u.cat, u.q).length)}
+     <div class="panel"><h3>Detalle del flujo de efectivo</h3><p class="hint">Sujeto a los filtros de año, categoría y búsqueda</p>${stmtTable(ES.FE, {sel: u.y, q: u.q, cat: u.cat})}</div>`;
+  bindSel('feY', u, 'y', yParse); bindSel('feC', u, 'cat'); bindTxt('feQ', u, 'q'); bindReset(u, {y: 'all', cat: 'all', q: ''});
+  if (document.getElementById('cFeD')) acctChart('cFeD', ES.FE, {sel: u.y, q: u.q, cat: u.cat});
+  const z = k => g(k) ?? 0;
+  wfChart('cFeW', [{l: 'Efectivo inicial', v: z('ini'), total: true}, {l: 'Operación', v: z('cfo')}, {l: 'Inversión', v: z('cfi')}, {l: 'Financiación', v: z('cff')}, {l: 'Efectivo final', v: z('fin'), total: true}], 'Efectivo');
+  const ysF = u.y === 'all' ? M.years : [y1];
+  chart('cFeA', {type: 'bar', data: {labels: ysF.map(String), datasets: [['cfo', 'Operación', BLUE], ['cfi', 'Inversión', OCHRE], ['cff', 'Financiación', TEAL], ['neto', 'Variación neta', PLUM]]
+    .map(([k, l, c]) => bar(l, ysF.map(y => g(k, y)), c))}, options: {plugins: {tooltip: tipL(v => fN(v) + ' M')}, scales: {y: ax(yAxisM), x: axX()}}});
+  const comps = [['Utilidad neta', 'ni'], ['Depreciación y deterioro', 'dep'], ['Δ Inventarios', 'dInv'], ['Δ Cuentas por cobrar', 'dCxc'], ['Δ Cuentas por pagar', 'dCxp'], ['Otros ajustes', 'otros']];
+  chart('cFeC', {type: 'bar', data: {labels: comps.map(c => c[0]), datasets: [{label: 'Aporte al flujo', data: comps.map(c => g(c[1])), backgroundColor: comps.map(c => (g(c[1]) ?? 0) >= 0 ? POS : NEG), borderRadius: 3, maxBarThickness: 26}]},
+    options: {indexAxis: 'y', layout: {padding: {right: 56}}, plugins: {legend: {display: false}, vlabels: {fmt: v => fSign(v)}, tooltip: tipL(v => fSign(v) + ' M')}, scales: {x: ax(yAxisM), y: axX()}}});
+}
+
+/* ---------- RATIOS FINANCIEROS ---------- */
+const RCH = [
+  {g: 'Liquidez', t: 'Liquidez (veces)', ids: ['rc', 'pa'], f: v => fX(v), type: 'bar'},
+  {g: 'Liquidez', t: 'Razón de efectivo (veces)', ids: ['ef'], f: v => fX(v, 3), type: 'bar'},
+  {g: 'Endeudamiento', t: 'Endeudamiento y autonomía patrimonial', ids: ['pa2', 'aut'], f: v => fP(v), type: 'bar'},
+  {g: 'Endeudamiento', t: 'Apalancamiento y cobertura (veces)', ids: ['ap', 'ci', 'de'], f: v => fX(v), type: 'bar'},
+  {g: 'Rentabilidad', t: 'Márgenes', ids: ['mb', 'me', 'mo', 'mn'], f: v => fP(v), type: 'line'},
+  {g: 'Rentabilidad', t: 'Rentabilidad sobre capital', ids: ['roa', 'roe', 'roic'], f: v => fP(v), type: 'bar'},
+  {g: 'Eficiencia', t: 'Ciclo de efectivo (días)', ids: ['dio', 'dso', 'dpo', 'cce'], f: v => fN(v, 0) + ' d', type: 'bar'},
+  {g: 'Eficiencia', t: 'Rotación de activos (veces)', ids: ['ra'], f: v => fX(v), type: 'bar'},
+  {g: 'Flujo', t: 'Conversión a caja', ids: ['fe', 'fm'], f: v => fP(v), type: 'bar'}
+];
+const dRat = (r, a, b) => !isNum(a) || !isNum(b) ? '—' : r.fmt === 'p' ? fSign((b - a) * 100, 2) + ' pp' : r.fmt === 'x' ? fSign(b - a, 2) : r.fmt === 'd' ? fSign(b - a, 1) + ' d' : fSign(b - a, 0);
+function trendBadge(r) {
+  if (M.years.length < 2) return '<span class="badge b-nt">—</span>';
+  const a = r.fn(M.years[M.years.length - 2]), b = r.fn(M.last);
+  if (!isNum(a) || !isNum(b)) return '<span class="badge b-nt">n/d</span>';
+  const rel = a !== 0 ? (b - a) / Math.abs(a) : 0;
+  if (Math.abs(rel) < 0.02) return '<span class="badge b-nt">■ Estable</span>';
+  if (r.better === 0) return `<span class="badge b-nt">${rel > 0 ? '▲ Sube' : '▼ Baja'}</span>`;
+  const good = (rel > 0) === (r.better > 0);
+  return good ? `<span class="badge b-lo">${rel > 0 ? '▲' : '▼'} Mejora</span>` : `<span class="badge b-hi">${rel > 0 ? '▲' : '▼'} Deterioro</span>`;
+}
+function tabRAT() {
+  const u = ui.rat, groups = ['all'].concat([...new Set(M.ratios.map(r => r.g))]);
+  const list = M.ratios.filter(r => u.g === 'all' || r.g === u.g);
+  const yA = M.years.length > 1 ? M.years[M.years.length - 2] : null, hasP = yA !== null;
+  const head = `<tr><th>Indicador</th>${M.years.map(y => `<th>${y}</th>`).join('')}${hasP ? `<th>Δ ${yA}→${M.last}</th><th>Δ %</th><th>Tendencia</th>` : ''}<th class="txt">Cómo se calcula</th></tr>`;
+  const body = list.map(r => { const a = hasP ? r.fn(yA) : null, b = r.fn(M.last), pc = pctChg(a, b);
+    return `<tr><td>${esc(r.n)}</td>${M.years.map(y => `<td>${fmtR(r, r.fn(y))}</td>`).join('')}${hasP ? `<td>${dRat(r, a, b)}</td><td>${pc === null ? '—' : fPSign(pc)}</td><td>${trendBadge(r)}</td>` : ''}<td class="txt" style="color:var(--mut);font-size:12px">${esc(r.note)}</td></tr>`; }).join('');
+  const charts = RCH.filter(c => u.g === 'all' || c.g === u.g);
+  const rk = id => M.ratios.find(r => r.id === id);
+  const kp = ['rc', 'pa2', 'me', 'roe'].map((id, i) => { const r = rk(id), v = r.fn(M.last), p = M.years.length > 1 ? r.fn(M.years[M.years.length - 2]) : null;
+    return kpi(r.n, fmtR(r, v), (p !== null ? `${M.years[M.years.length - 2]}: ${fmtR(r, p)} · ` : '') + trendBadge(r), ['', 't3', 't2', 't4'][i]); }).join('');
+  view().innerHTML = pageHead('Ratios financieros', `Calculados con saldos al cierre de cada año · ${M.years[0]}–${M.last}`) +
+    `<div class="ctl">${sel('raG', groups.map(g => [g, g === 'all' ? 'Todos los grupos' : g]), u.g, 'Grupo de indicadores')}${resetBtn}</div><div class="kpis">${kp}</div>` +
+    `<div class="grid g2">${charts.map((c, i) => `<div class="panel"><h3>${esc(c.t)}</h3><div class="cbox short"><canvas id="cRa${i}"></canvas></div></div>`).join('')}</div>` +
+    `<div class="panel"><h3>Tabla de indicadores</h3><p class="hint">Δ en puntos porcentuales (pp) para razones expresadas en %, y Δ % relativa al año anterior. La tendencia califica «mejora» o «deterioro» según el sentido favorable de cada indicador. Los días de proveedores no se califican porque su sentido favorable depende de la política comercial.</p>
+     <div class="tw"><table class="tbl"><thead>${head}</thead><tbody>${body}</tbody></table></div></div>`;
+  bindSel('raG', u, 'g'); bindReset(u, {g: 'all'});
+  const cols = [BLUE, TEAL, OCHRE, PLUM];
+  charts.forEach((c, i) => {
+    const ds = c.ids.map((id, j) => { const r = rk(id), data = M.years.map(y => r.fn(y));
+      return c.type === 'line' ? {label: r.n, data, borderColor: cols[j], backgroundColor: cols[j], borderWidth: 2, pointRadius: 4, pointBorderColor: '#fff', pointBorderWidth: 2, tension: .15} : bar(r.n, data, cols[j]); });
+    chart('cRa' + i, {type: c.type, data: {labels: M.years.map(String), datasets: ds}, options: {plugins: {tooltip: tipL(c.f), vlabels: c.type === 'bar' ? {fmt: c.f} : undefined}, layout: {padding: {top: c.type === 'bar' ? 16 : 0}}, scales: {y: ax(v => c.f(v)), x: axX()}}});
+  });
+}
+
+/* ---------- COMPARATIVO ---------- */
+const CAT_DEF = [['Ingresos', ES.ER, ['ing']], ['Costos', ES.ER, ['cogs']], ['Gastos operativos', ES.ER, ['gv', 'ga', 'og']], ['Resultado financiero', ES.ER, ['ifin', 'gf']],
+  ['Impuestos', ES.ER, ['imp']], ['Rentabilidad (utilidad neta)', ES.ER, ['neta']], ['Activos', ES.BG, ['act']], ['Pasivos', ES.BG, ['pas']], ['Patrimonio', ES.BG, ['pat']],
+  ['Flujo operativo', ES.FE, ['cfo']], ['Flujo de inversión', ES.FE, ['cfi']], ['Flujo de financiación', ES.FE, ['cff']], ['Flujo neto', ES.FE, ['neto']]];
+function catSummary(y) {
+  return CAT_DEF.map(([l, e, ks]) => { const grp = e === ES.ER ? C.er : e === ES.BG ? C.bg : C.fe, vals = ks.map(k => M.g(e, grp[k], y)); return [l, vals.some(v => v === null) ? null : sum(vals)]; });
+}
+function tabCMP() {
+  const u = ui.cmp;
+  if (!M.years.includes(u.a)) u.a = M.years[0]; if (!M.years.includes(u.b)) u.b = M.last;
+  const rows = [];
+  M.estados.forEach(e => (M.order[e] || []).forEach(c => {
+    const a = M.g(e, c, u.a), b = M.g(e, c, u.b), cat = M.cat[e + '|' + norm(c)] || '(sin categoría)';
+    rows.push({e, c, cat, a, b, d: (isNum(a) && isNum(b)) ? b - a : null, p: pctChg(a, b)});
+  }));
+  const cats = ['all'].concat([...new Set(rows.map(r => r.cat))]);
+  if (!cats.includes(u.cat)) u.cat = 'all';
+  if (u.est !== 'all' && !M.estados.includes(u.est)) u.est = 'all';
+  let f = rows.filter(r => (u.est === 'all' || r.e === u.est) && (u.cat === 'all' || r.cat === u.cat) && (!u.q || norm(r.c).includes(norm(u.q))));
+  if (u.ord === 'abs') f = f.slice().sort((x, y) => Math.abs(y.d ?? 0) - Math.abs(x.d ?? 0));
+  else if (u.ord === 'pct') f = f.slice().sort((x, y) => Math.abs(y.p ?? 0) - Math.abs(x.p ?? 0));
+  const body = f.map(r => `<tr><td>${esc(r.c)}</td><td class="txt" style="color:var(--mut)">${esc(r.e)}</td><td class="txt" style="color:var(--mut)">${esc(r.cat)}</td><td>${fN(r.a, 1)}</td><td>${fN(r.b, 1)}</td>
+    <td class="${r.d > 0 ? 'up' : r.d < 0 ? 'dn' : ''}">${fSign(r.d, 1)}</td><td class="${r.d > 0 ? 'up' : r.d < 0 ? 'dn' : ''}">${r.p === null ? (r.d === null ? '—' : 'n/s') : fPSign(r.p)}</td></tr>`).join('');
+  view().innerHTML = pageHead('Comparativo entre años', `${u.a} frente a ${u.b}`) +
+    `<div class="ctl">${sel('cmA', M.years.map(y => [y, y]), u.a, 'Año base')}${sel('cmB', M.years.map(y => [y, y]), u.b, 'Año comparado')}
+      ${sel('cmE', [['all', 'Todos los estados']].concat(M.estados.map(e => [e, e])), u.est, 'Estado financiero')}${sel('cmC', cats.map(c => [c, c === 'all' ? 'Todas las categorías' : c]), u.cat, 'Categoría')}
+      ${sel('cmO', [['abs', 'Mayor variación absoluta'], ['pct', 'Mayor variación %'], ['orig', 'Orden del estado']], u.ord, 'Ordenar por')}
+      <label>Buscar cuenta<input type="text" id="cmQ" value="${esc(u.q)}"></label>${resetBtn}</div>` +
+    `<div class="grid g2"><div class="panel"><h3>Cifras clave</h3><p class="hint">Principales totales en ${u.a} y ${u.b} (M)</p><div class="cbox"><canvas id="cCmK"></canvas></div></div>
+      <div class="panel"><h3>Mayores variaciones</h3><p class="hint">Diez cuentas con mayor movimiento absoluto según los filtros (M)</p><div class="cbox"><canvas id="cCmV"></canvas></div></div></div>
+     <div class="panel" style="margin-bottom:16px"><h3>Resumen por categoría</h3><p class="hint">Totales por categoría de los estados financieros · ${u.a} frente a ${u.b} (M)</p>
+      <div class="tw" style="max-height:none"><table class="tbl"><thead><tr><th>Categoría</th><th>${u.a}</th><th>${u.b}</th><th>Δ</th><th>Δ %</th></tr></thead><tbody>${catSummary(u.a).map(([l, a], i) => { const b = catSummary(u.b)[i][1], d = isNum(a) && isNum(b) ? b - a : null, p = pctChg(a, b);
+        return `<tr><td>${esc(l)}</td><td>${fN(a, 2)}</td><td>${fN(b, 2)}</td><td class="${d > 0 ? 'up' : d < 0 ? 'dn' : ''}">${fSign(d, 2)}</td><td class="${d > 0 ? 'up' : d < 0 ? 'dn' : ''}">${p === null ? (d === null ? '—' : 'n/s') : fPSign(p)}</td></tr>`; }).join('')}</tbody></table></div>
+      <p class="note">Gastos operativos = venta y distribución + administrativos + otros gastos operativos. Resultado financiero = ingresos − gastos financieros.</p></div>
+     <div class="panel"><h3>Detalle comparativo</h3><p class="hint">${f.length} cuentas · Δ = ${u.b} − ${u.a}</p>
+      ${f.length ? `<div class="tw"><table class="tbl"><thead><tr><th>Concepto</th><th class="txt">Estado</th><th class="txt">Categoría</th><th>${u.a}</th><th>${u.b}</th><th>Δ</th><th>Δ %</th></tr></thead><tbody>${body}</tbody></table></div>` : '<div class="empty">Sin resultados para los filtros.</div>'}</div>`;
+  bindSel('cmA', u, 'a', Number); bindSel('cmB', u, 'b', Number); bindSel('cmE', u, 'est'); bindSel('cmC', u, 'cat'); bindSel('cmO', u, 'ord'); bindTxt('cmQ', u, 'q'); bindReset(u, {a: M.years[0], b: M.last, est: 'all', cat: 'all', q: '', ord: 'abs'});
+  const keysAll = [['Ingresos', ES.ER, C.er.ing], ['EBITDA', ES.ER, C.er.ebitda], ['EBIT', ES.ER, C.er.ebit], ['Utilidad neta', ES.ER, C.er.neta], ['Activos', ES.BG, C.bg.act], ['Pasivos', ES.BG, C.bg.pas], ['Patrimonio', ES.BG, C.bg.pat], ['Flujo operativo', ES.FE, C.fe.cfo]];
+  const keysF = keysAll.filter(k => u.est === 'all' || k[1] === u.est), keys = keysF.length ? keysF : keysAll;
+  chart('cCmK', {type: 'bar', data: {labels: keys.map(k => k[0]), datasets: [bar(String(u.a), keys.map(k => M.g(k[1], k[2], u.a)), yCol(u.a)), bar(String(u.b), keys.map(k => M.g(k[1], k[2], u.b)), yCol(u.b))]},
+    options: {plugins: {tooltip: tipL(v => fN(v) + ' M')}, scales: {y: ax(yAxisM), x: axX({ticks: {font: {size: 11}}})}}});
+  const top = f.filter(r => r.d !== null && !(r.e === ES.BG && lvl(r.e, r.c) < 2) && !(r.e !== ES.BG && lvl(r.e, r.c) < 2)).slice().sort((x, y) => Math.abs(y.d) - Math.abs(x.d)).slice(0, 10);
+  const top2 = top.length ? top : f.filter(r => r.d !== null).sort((x, y) => Math.abs(y.d) - Math.abs(x.d)).slice(0, 10);
+  chart('cCmV', {type: 'bar', data: {labels: top2.map(r => r.c), datasets: [{label: 'Variación', data: top2.map(r => r.d), backgroundColor: top2.map(r => r.d >= 0 ? POS : NEG), borderRadius: 3, maxBarThickness: 22}]},
+    options: {indexAxis: 'y', layout: {padding: {right: 56}}, plugins: {legend: {display: false}, vlabels: {fmt: v => fSign(v)}, tooltip: tipL(v => fSign(v) + ' M')}, scales: {x: ax(yAxisM), y: axX({ticks: {font: {size: 11}}})}}});
+}
+</script>
+<script>
+'use strict';
+/* =====================  PESTAÑAS DEL DASHBOARD (2/2)  ===================== */
+const rk = id => M.ratios.find(r => r.id === id);
+const prevY = () => M.years.length > 1 ? M.years[M.years.length - 2] : null;
+const chgWord = (a, b, up = 'crecieron', dn = 'disminuyeron') => { const p = pctChg(a, b); return p === null ? 'variaron' : (p >= 0 ? up : dn); };
+const chgTxt = (a, b) => { const p = pctChg(a, b); return p === null ? '' : ` (${fPSign(p)})`; };
+const evaYears = () => M.evaAll.map(r => r.Año).join('-');
+/* Heatmap Kd × Ke */
+function heatTable(kdAx, keAx, fn, cur) {
+  const vals = []; kdAx.forEach(kd => keAx.forEach(ke => { const v = fn(kd, ke); if (isNum(v)) vals.push(Math.abs(v)); }));
+  const mx = Math.max(1, ...vals);
+  const cell = (kd, ke) => {
+    const v = fn(kd, ke); if (!isNum(v)) return '<td>—</td>';
+    const t = Math.min(1, Math.abs(v) / mx), c = v < 0 ? '179,67,63' : '46,156,143', a = (0.1 + 0.72 * t).toFixed(2);
+    const isCur = cur && Math.abs(cur.kd - kd) < 1e-6 && Math.abs(cur.ke - ke) < 1e-6;
+    return `<td class="${isCur ? 'cur' : ''}" style="background:rgba(${c},${a});color:${t > 0.62 ? '#fff' : INK}" title="Kd ${fP(kd)} · Ke ${fP(ke)}: EVA ${fN(v, 1)} M">${fN(v)}</td>`;
+  };
+  return `<div class="tw" style="max-height:none"><table class="heat"><thead><tr><th>Kd ↓ / Ke →</th>${keAx.map(k => `<th>${fP(k, 0)}</th>`).join('')}</tr></thead>
+    <tbody>${kdAx.map(kd => `<tr><th>${fP(kd, 1)}</th>${keAx.map(ke => cell(kd, ke)).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+
+
+
+/* ---------- RESUMEN EJECUTIVO ---------- */
+function tabRES() {
+  const y = M.last, p = prevY(), E = M.evaBase, er = k => M.er(k, y), erp = k => p ? M.er(k, p) : null;
+  const kp = [['Ingreso operativo', 'ing', ''], ['Utilidad neta', 'neta', 't2'], ['EBITDA', 'ebitda', 't3']].map(([l, k, c]) =>
+    kpi(l, fN(er(k)), p ? `vs ${p}: ${deltaTxt(erp(k), er(k))}` : '', c, 'M')).join('') +
+    kpi('Margen neto', fP(rk('mn').fn(y)), p ? `${p}: ${fP(rk('mn').fn(p))}` : '', 't4') +
+    kpi('Activos totales', fN(M.bg('act', y)), p ? `vs ${p}: ${deltaTxt(M.bg('act', p), M.bg('act', y))}` : '', '', 'M') +
+    (E ? kpi('EVA ' + y, fN(E.eva), `ROIC ${fP(E.roic)} vs WACC ${fP(E.wacc)}<br>${badgeVal(E.res)}`, E.eva > 0 ? 'good' : 'bad', 'M') : '') +
+    (M.evaProj ? kpi('EVA ' + M.proj + ' (proyectado)', fN(M.evaProj.eva), `Δ vs ${y}: ${fSign(M.evaProj.eva - (E ? E.eva : 0))} M`, M.evaProj.eva > 0 ? 'good' : 'bad', 'M') : '');
+  const par = [];
+  par.push(['Desempeño operativo', `Los ingresos operativos ${chgWord(erp('ing'), er('ing'))}${chgTxt(erp('ing'), er('ing'))} hasta ${fN(er('ing'))} M en ${y}. El EBITDA llegó a ${fN(er('ebitda'))} M${p ? ` (${fPSign(pctChg(erp('ebitda'), er('ebitda')))} frente a ${p})` : ''}, con margen EBITDA de ${fP(rk('me').fn(y))}${p ? ` (${fP(rk('me').fn(p))} en ${p})` : ''}. La utilidad neta fue ${fN(er('neta'))} M, margen neto de ${fP(rk('mn').fn(y))}${p ? ` (${fP(rk('mn').fn(p))} en ${p})` : ''}.
+    ${isNum(er('gf')) ? `Los gastos financieros (${fN(Math.abs(er('gf')))} M) absorben ${fP(Math.abs(er('gf')) / er('ebit'), 0)} del EBIT, con cobertura de intereses de ${fX(rk('ci').fn(y))}.` : ''}`]);
+  par.push(['Balance y estructura de capital', `Los activos totales ${chgWord(M.bg('act', p), M.bg('act', y))}${chgTxt(M.bg('act', p), M.bg('act', y))} hasta ${fN(M.bg('act', y))} M; el inventario representa ${fP(M.bg('inv', y) / M.bg('act', y), 0)} del activo y ${fDias(rk('dio').fn(y))} de rotación. El patrimonio es ${fN(M.bg('pat', y))} M (autonomía patrimonial ${fP(rk('aut').fn(y))}) y la deuda financiera ${fN(M.deuda(y))} M${p ? ` (${fN(M.deuda(p))} M en ${p})` : ''}, equivalente a ${fX(rk('de').fn(y))} el EBITDA. La razón corriente es ${fX(rk('rc').fn(y))} y la prueba ácida ${fX(rk('pa').fn(y))}.`]);
+  const cfo = M.fe('cfo', y);
+  par.push(['Caja y liquidez', `El flujo de operación fue ${fN(cfo)} M${p ? ` (${fN(M.fe('cfo', p))} M en ${p})` : ''}, frente a una utilidad neta de ${fN(er('neta'))} M. La inversión en activos fijos usó ${fN(Math.abs(M.fe('cfi', y) ?? 0))} M y la financiación aportó ${fN(M.fe('cff', y))} M.
+    ${isNum(cfo) && cfo < 0 && isNum(M.fe('dCxp', y)) ? `El déficit operativo se cubrió con financiación externa: el cambio en cuentas por pagar (${fN(M.fe('dCxp', y))} M), cuentas por cobrar (${fN(M.fe('dCxc', y))} M) e inventarios (${fN(M.fe('dInv', y))} M) explica la brecha.` : 'La caja operativa cubre la inversión del período.'} El efectivo final es ${fN(M.fe('fin', y))} M.`]);
+  if (E) par.push(['Creación de valor (EVA)', `El EVA de ${y} fue ${fN(E.eva)} M: el NOPAT (${fN(E.nopat)} M, con impuesto de ${fP(E.tasa, 0)}) no cubre el cargo de capital (${fN(E.cargo)} M = ${fN(E.ci)} M de capital invertido × WACC de ${fP(E.wacc)}). El WACC combina un costo de deuda de ${fP(E.kd)} y un costo del patrimonio de ${fP(E.ke)}. El ROIC es ${fP(E.roic)} y el spread frente al WACC ${fPSign(E.spread)}.
+    ${M.evaProj ? `En ${M.proj} (proyectado con los supuestos del análisis) el EVA sería ${fN(M.evaProj.eva)} M${M.evaProj.eva > 0 ? '' : ': la destrucción de valor se atenúa pero persiste'}.` : ''}`]);
+  const risks = computeRisks().filter(r => r.lvl === 'hi').slice(0, 4);
+  const struct = [['aut'], ['pa2'], ['rc'], ['pa'], ['kt']].map(([id]) => rk(id));
+  view().innerHTML = pageHead('Resumen ejecutivo', `Lectura integrada de ${y} · generada automáticamente a partir de los datos cargados`) +
+    `<div class="kpis">${kp}</div>` +
+    `<div class="grid g21"><div class="panel story"><h3 style="margin-bottom:8px">Lo esencial</h3>${par.map(([t, x]) => `<h4>${esc(t)}</h4><p>${x}</p>`).join('')}
+      ${risks.length ? `<h4>Riesgos de nivel alto</h4><ul>${risks.map(r => `<li><b>${esc(r.t)}.</b> ${r.ev}</li>`).join('')}</ul>` : ''}</div>
+      <div class="panel"><h3>Variación ${p ? p + ' → ' + y : y}</h3><p class="hint">Cambio porcentual de las principales cifras</p><div class="cbox tall"><canvas id="cRsV"></canvas></div></div></div>
+     <div class="grid g2"><div class="panel"><h3>Estructura de capital y liquidez</h3><p class="hint">Indicadores clave por año</p>
+       <div class="tw" style="max-height:none"><table class="tbl"><thead><tr><th>Indicador</th>${M.years.map(yy => `<th>${yy}</th>`).join('')}</tr></thead><tbody>${struct.map(r => `<tr><td>${esc(r.n)}</td>${M.years.map(yy => `<td>${fmtR(r, r.fn(yy))}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>
+      <div class="panel"><h3>EVA por año</h3><p class="hint">NOPAT, cargo de capital y EVA (M)</p><div class="cbox short"><canvas id="cRsE"></canvas></div></div></div>`;
+  if (p) {
+    const items = [['Ingresos', 'er', 'ing'], ['EBITDA', 'er', 'ebitda'], ['EBIT', 'er', 'ebit'], ['Utilidad neta', 'er', 'neta'], ['Activos', 'bg', 'act'], ['Patrimonio', 'bg', 'pat'], ['Deuda financiera', 'd', ''], ['Inventarios', 'bg', 'inv'], ['Cuentas por cobrar', 'bg', 'cxc'], ['Cuentas por pagar', 'bg', 'cxp']]
+      .map(([l, t, k]) => { const f = yy => t === 'd' ? M.deuda(yy) : M[t](k, yy); return {l, v: pctChg(f(p), f(y))}; }).filter(r => r.v !== null);
+    chart('cRsV', {type: 'bar', data: {labels: items.map(r => r.l), datasets: [{label: 'Variación %', data: items.map(r => r.v), backgroundColor: items.map(r => r.v >= 0 ? BLUE : OCHRE), borderRadius: 3, maxBarThickness: 22}]},
+      options: {indexAxis: 'y', layout: {padding: {right: 52}}, plugins: {legend: {display: false}, vlabels: {fmt: v => fPSign(v, 0)}, tooltip: tipL(v => fPSign(v))}, scales: {x: ax(v => fP(v, 0)), y: axX()}}});
+  }
+  chart('cRsE', {type: 'bar', data: {labels: M.evaAll.map(r => String(r.Año) + (r.tipo === 'Proyectado' ? ' (proy.)' : '')), datasets: [bar('NOPAT', M.evaAll.map(r => r.nopat), BLUE), bar('Cargo de capital', M.evaAll.map(r => r.cargo), SKY), bar('EVA', M.evaAll.map(r => r.eva), NEG)]},
+    options: {layout: {padding: {top: 16}}, plugins: {vlabels: {fmt: fN, only: [2]}, tooltip: tipL(v => fN(v) + ' M')}, scales: {y: ax(yAxisM), x: axX()}}});
+}
+
+/* ---------- ANÁLISIS Y RIESGOS ---------- */
+const RISK_RULES = [
+  ['Creación de valor (EVA)', 'Alto: ROIC < 50 % del WACC · Medio: EVA ≤ 0 · Bajo: EVA > 0'],
+  ['Costo de la deuda', 'Alto: Kd ponderado > 30 % · Medio: > 20 % · Bajo: ≤ 20 %'],
+  ['Caja operativa', 'Alto: flujo operativo < 0 · Medio: flujo operativo < utilidad neta · Bajo: resto'],
+  ['Liquidez inmediata', 'Alto: prueba ácida < 0,7x · Medio: < 1,0x · Bajo: ≥ 1,0x'],
+  ['Inventarios', 'Alto: > 120 días · Medio: > 60 días · Bajo: ≤ 60 días'],
+  ['Endeudamiento financiero', 'Alto: deuda/EBITDA > 4x · Medio: > 2,5x · Bajo: ≤ 2,5x'],
+  ['Cobertura de intereses', 'Alto: EBIT/gastos financieros < 1,5x · Medio: < 3x · Bajo: ≥ 3x'],
+  ['Cartera de clientes', 'Alto: días de cartera suben > 25 % · Medio: > 10 % · Bajo: resto'],
+  ['Presión sobre proveedores', 'Alto: cuentas por pagar caen > 20 % y su consumo de caja > 50 % del EBITDA · Medio: caen > 20 % · Bajo: resto'],
+  ['Rentabilidad neta', 'Alto: margen neto < 2 % · Medio: < 5 % · Bajo: ≥ 5 %'],
+  ['Carga tributaria', 'Medio: tasa efectiva (impuesto / utilidad antes de impuestos) > 35 % · Bajo: ≤ 35 %'],
+  ['Proyección de valor', 'Alto: EVA proyectado < 0 · Bajo: EVA proyectado > 0']
+];
+function computeRisks() {
+  const y = M.last, p = prevY(), out = [], E = M.evaBase;
+  const R = (id, yy = y) => rk(id).fn(yy), push = (t, lvl, ev, act) => out.push({t, lvl, ev, act});
+  if (E) {
+    const keStar = E.we ? (E.roic - E.wd * E.kd * (1 - E.tasa)) / E.we : null;
+    push('Creación de valor (EVA)', E.eva > 0 ? 'lo' : (E.roic < E.wacc * 0.5 ? 'hi' : 'md'),
+      `EVA ${y}: ${fN(E.eva)} M. ROIC ${fP(E.roic)} frente a WACC ${fP(E.wacc)} (brecha ${fPSign(E.spread)}). El EVA solo sería cero con un Ke de ${fP(keStar)}, frente al ${fP(E.ke)} ponderado de los socios.`,
+      'Elevar la rentabilidad del capital invertido (margen y rotación) y reducir capital inmovilizado, en especial inventarios y cartera; el costo de capital por sí solo no cierra la brecha.');
+    push('Costo de la deuda', E.kd > 0.3 ? 'hi' : E.kd > 0.2 ? 'md' : 'lo',
+      `Kd ponderado ${fP(E.kd)}${M.eva.length > 1 ? ' (' + M.eva.map(r => r.Año + ': ' + fP(r.kd)).join(' · ') + ')' : ''}. Deuda con costo: ${fN(E.deuda)} M.`,
+      'Renegociar o sustituir las obligaciones de mayor costo y priorizar el prepago de las más caras.');
+  }
+  const cfo = M.fe('cfo', y), ni = M.er('neta', y), cff = M.fe('cff', y);
+  if (isNum(cfo)) push('Caja operativa', cfo < 0 ? 'hi' : (isNum(ni) && cfo < ni ? 'md' : 'lo'),
+    `Flujo operativo ${y}: ${fN(cfo)} M frente a utilidad neta de ${fN(ni)} M${isNum(cff) ? `; la financiación neta aportó ${fN(cff)} M` : ''}.`,
+    'Construir un presupuesto de caja mensual y condicionar el crecimiento de ventas a su financiación; revisar plazos de cartera, inventario y pagos a proveedores.');
+  if (isNum(R('pa'))) push('Liquidez inmediata', R('pa') < 0.7 ? 'hi' : R('pa') < 1 ? 'md' : 'lo',
+    `Razón corriente ${fX(R('rc'))}, prueba ácida ${fX(R('pa'))} y efectivo equivalente a ${fX(R('ef'), 3)} del pasivo corriente. Efectivo: ${fN(M.bg('efe', y))} M.`,
+    'Mantener líneas de crédito de corto plazo disponibles y vigilar que la liquidez no dependa de convertir inventario.');
+  if (isNum(R('dio'))) push('Inventarios', R('dio') > 120 ? 'hi' : R('dio') > 60 ? 'md' : 'lo',
+    `${fDias(R('dio'))} de inventario${p ? ` (${fDias(R('dio', p))} en ${p})` : ''}; el inventario equivale a ${fP(M.bg('inv', y) / M.bg('act', y), 0)} del activo total (${fN(M.bg('inv', y))} M).`,
+    'Revisar rotación por referencia, obsolescencia y política de compras; fijar metas de días de inventario por línea.');
+  if (isNum(R('de'))) push('Endeudamiento financiero', R('de') > 4 ? 'hi' : R('de') > 2.5 ? 'md' : 'lo',
+    `Deuda financiera ${fN(M.deuda(y))} M${p ? ` (${fN(M.deuda(p))} M en ${p})` : ''}: ${fX(R('de'))} el EBITDA; deuda/patrimonio ${fP(R('dp'))}.`,
+    'Alinear vencimientos con la generación de caja y evaluar sustituir deuda de corto plazo por plazos más largos.');
+  if (isNum(R('ci'))) push('Cobertura de intereses', R('ci') < 1.5 ? 'hi' : R('ci') < 3 ? 'md' : 'lo',
+    `El EBIT cubre ${fX(R('ci'))} los gastos financieros (${fN(Math.abs(M.er('gf', y) ?? 0))} M).`, 'Proteger el margen operativo y renegociar tasas; un deterioro del EBIT afectaría rápido la utilidad.');
+  if (p && isNum(R('dso')) && isNum(R('dso', p))) { const ch = (R('dso') - R('dso', p)) / R('dso', p);
+    push('Cartera de clientes', ch > 0.25 ? 'hi' : ch > 0.1 ? 'md' : 'lo',
+      `Días de cartera: ${fDias(R('dso'))} frente a ${fDias(R('dso', p))} en ${p} (${fPSign(ch)}). Cuentas por cobrar ${fPSign(pctChg(M.bg('cxc', p), M.bg('cxc', y)))} frente a ingresos ${fPSign(pctChg(M.er('ing', p), M.er('ing', y)))}.`,
+      'Reforzar la gestión de cobro y los límites de crédito por cliente.'); }
+  if (p && isNum(M.bg('cxp', y)) && isNum(M.bg('cxp', p))) { const ch = pctChg(M.bg('cxp', p), M.bg('cxp', y)), cons = M.fe('dCxp', y), eb = M.er('ebitda', y);
+    const big = ch !== null && ch < -0.2;
+    push('Presión sobre proveedores', big ? ((isNum(cons) && isNum(eb) && eb > 0 && -cons / eb > 0.5) ? 'hi' : 'md') : 'lo',
+      `Cuentas comerciales por pagar ${fN(M.bg('cxp', y))} M (${ch === null ? 'n/s' : fPSign(ch)} vs ${p}); el cambio en cuentas por pagar del flujo usó ${fN(Math.abs(cons ?? 0))} M de caja${isNum(eb) ? `, ${fP(Math.abs(cons ?? 0) / eb, 0)} del EBITDA` : ''}. Días de proveedores: ${fDias(R('dpo'))}.`,
+      'Documentar la política de pagos y revisar si el menor crédito de proveedores es decisión o pérdida de condiciones.'); }
+  if (isNum(R('mn'))) push('Rentabilidad neta', R('mn') < 0.02 ? 'hi' : R('mn') < 0.05 ? 'md' : 'lo',
+    `Margen neto ${fP(R('mn'))}${p ? ` (${fP(R('mn', p))} en ${p})` : ''}; margen EBITDA ${fP(R('me'))}; ROE ${fP(R('roe'))}.`, 'Buscar eficiencia en gastos de venta y distribución y mejora de mezcla de productos.');
+  const ebt = M.er('ebt', y), imp = M.er('imp', y);
+  if (isNum(ebt) && isNum(imp) && ebt > 0) { const t = Math.abs(imp) / ebt;
+    push('Carga tributaria', t > 0.35 ? 'md' : 'lo', `Tasa efectiva de impuesto ${fP(t)}${p && M.er('ebt', p) > 0 ? ` (${fP(Math.abs(M.er('imp', p)) / M.er('ebt', p))} en ${p})` : ''}. El cálculo del EVA usa ${E ? fP(E.tasa, 0) : 'la tasa'} nominal.`,
+      'Revisar con el área tributaria la conciliación de la tasa efectiva y los beneficios aplicables.'); }
+  if (M.evaProj) push('Proyección de valor', M.evaProj.eva > 0 ? 'lo' : 'hi', `EVA ${M.proj} proyectado: ${fN(M.evaProj.eva)} M (ROIC ${fP(M.evaProj.roic)} frente a WACC ${fP(M.evaProj.wacc)}).`,
+    'Definir un plan de reducción de capital invertido y de mejora de NOPAT con metas verificables; los supuestos de crecimiento no bastan para pasar el EVA a positivo.');
+  const ord = {hi: 0, md: 1, lo: 2}; return out.sort((a, b) => ord[a.lvl] - ord[b.lvl]);
+}
+function tabRIE() {
+  const risks = computeRisks(), cnt = l => risks.filter(r => r.lvl === l).length;
+  view().innerHTML = pageHead('Análisis y riesgos', `Hallazgos del informe y riesgos financieros de ${M.last} evaluados con criterios explícitos`) +
+    (M.analisis.length ? `<div class="panel story" style="margin-bottom:16px"><h3 style="margin-bottom:8px">Análisis cualitativo del informe</h3>${M.analisis.map(s => `<h4>${esc(s.t)}</h4><p style="white-space:pre-line">${esc(s.p)}</p>`).join('')}</div>` : '') +
+    `<div class="callout info"><b>Evaluación automática.</b> Los niveles resultan de reglas con umbrales fijos (tabla al final); son una herramienta de lectura y no reemplazan el juicio del analista ni comparan contra el sector.</div>` +
+    `<div class="kpis">${kpi('Riesgos altos', cnt('hi'), '▲ requieren atención prioritaria', 'bad')}${kpi('Riesgos medios', cnt('md'), '◆ seguimiento cercano', 't3')}${kpi('Riesgos bajos', cnt('lo'), '● dentro de rangos', 'good')}</div>` +
+    `<div class="grid g21"><div class="risk-list">${risks.map(r => `<div class="risk ${r.lvl}"><div>${badgeRisk(r.lvl)}</div><div><h4>${esc(r.t)}</h4><p class="ev">${r.ev}</p><p><b>Acción sugerida:</b> ${esc(r.act)}</p></div></div>`).join('')}</div>
+      <div><div class="panel" style="margin-bottom:16px"><h3>Distribución de riesgos</h3><div class="cbox short"><canvas id="cRiD"></canvas></div></div>
+      <div class="panel"><h3>Indicadores bajo vigilancia</h3><p class="hint">Valor del último año y tendencia</p>
+        <div class="tw" style="max-height:none"><table class="tbl"><tbody>${['rc', 'pa', 'de', 'ci', 'dio', 'dso', 'cce', 'fe'].map(id => { const r = rk(id); return `<tr><td>${esc(r.n)}</td><td>${fmtR(r, r.fn(M.last))}</td><td>${trendBadge(r)}</td></tr>`; }).join('')}</tbody></table></div></div></div></div>
+     <div class="panel" style="margin-top:16px"><h3>Criterios de clasificación</h3><div class="tw"><table class="tbl"><thead><tr><th>Riesgo</th><th class="txt">Regla</th></tr></thead><tbody>${RISK_RULES.map(([a, b]) => `<tr><td>${esc(a)}</td><td class="txt">${esc(b)}</td></tr>`).join('')}</tbody></table></div></div>`;
+  chart('cRiD', {type: 'bar', data: {labels: ['Alto', 'Medio', 'Bajo'], datasets: [{label: 'Riesgos', data: [cnt('hi'), cnt('md'), cnt('lo')], backgroundColor: [NEG, OCHRE, POS], borderRadius: 4, maxBarThickness: 60}]},
+    options: {layout: {padding: {top: 16}}, plugins: {legend: {display: false}, vlabels: {fmt: v => String(v)}}, scales: {y: ax(v => fN(v), {beginAtZero: true, ticks: {precision: 0}}), x: axX()}}});
+}
+
+/* ---------- EVA 2024-2025-2026 ---------- */
+const EV_IN = [['Activos totales', 'act', 'n', 'activos totales'], ['Obligaciones financieras (deuda con costo)', 'deuda', 'n', 'obligaciones financieras deuda con costo'],
+  ['   Créditos y préstamos corrientes', 'dC', 'n', 'creditos y prestamos corrientes'], ['   Créditos y préstamos no corrientes', 'dNC', 'n', 'creditos y prestamos no corrientes'],
+  ['Patrimonio total', 'pat', 'n', 'patrimonio total'], ['Aportes de socios', 'aportes', 'n', 'aportes de socios'], ['Utilidad operativa (EBIT)', 'ebit', 'n', 'utilidad operativa ebit'],
+  ['Impuesto a la renta (tasa)', 'tasa', 'p', 'impuesto a la renta']];
+const EV_WACC = [['Peso de la deuda (wd)', 'wd', 'p', 'weighted debt peso de la deuda ponderada'], ['Peso del patrimonio (we)', 'we', 'p', 'weightted assets activos ponderados'],
+  ['Costo de la deuda ponderado (Kd)', 'kd', 'p', 'kost of debt costo de la deuda ponderada'], ['Costo del patrimonio ponderado (Ke, TIO de los socios)', 'ke', 'p', 'ka costo de los activos ponderado'],
+  ['Componente de la deuda = wd × Kd × (1 − t)', 'cDeuda', 'p', 'componente de la deuda'], ['Componente del patrimonio = we × Ke', 'cPat', 'p', 'componente del patrimonio'], ['WACC', 'wacc', 'p', 'wacc']];
+const EV_EVA = [['NOPAT = EBIT × (1 − t)', 'nopat', 'n', 'nopat beneficio operativo neto despues de impuestos'], ['Capital invertido (deuda + patrimonio)', 'ci', 'n', ''], ['Cargo de capital = capital × WACC', 'cargo', 'n', ''],
+  ['EVA = NOPAT − cargo de capital', 'eva', 'n', 'eva valor economico agregado'], ['ROIC = NOPAT / capital', 'roic', 'p', ''], ['Spread = ROIC − WACC', 'spread', 'p', '']];
+function evaChecks(r) {
+  const out = [], t = 1.5;
+  if (Math.abs(r.dC + r.dNC - r.deuda) > t) out.push(`En ${r.Año} la suma de créditos corrientes y no corrientes (${fN(r.dC + r.dNC, 2)} M) difiere del total de obligaciones financieras (${fN(r.deuda, 2)} M) en ${fN(Math.abs(r.dC + r.dNC - r.deuda), 2)} M. El cálculo usa el total, como el archivo de análisis.`);
+  if (Math.abs(r.deudaTP.total - r.deuda) > t) out.push(`En ${r.Año} la tabla de obligaciones por entidad suma ${fN(r.deudaTP.total, 2)} M frente a ${fN(r.deuda, 2)} M de deuda con costo.`);
+  if (Math.abs(r.sociosTP.total - r.aportes) > t) out.push(`En ${r.Año} los aportes por socio suman ${fN(r.sociosTP.total, 2)} M frente a ${fN(r.aportes, 2)} M de aportes de socios.`);
+  return out;
+}
+function tabEVH() {
+  const u = ui.evh, rows = M.evaAll;
+  if (!rows.length) { view().innerHTML = pageHead('EVA', '') + noData('No hay datos suficientes para calcular el EVA: se requieren patrimonio, deuda financiera y EBIT en los estados financieros, y los parámetros EVA (obligaciones por entidad y aportes por socio).'); return; }
+  if (!rows.some(r => r.Año === u.y)) u.y = M.evaBase ? M.evaBase.Año : rows[0].Año;
+  const cur = rows.find(r => r.Año === u.y), prv = rows[rows.indexOf(cur) - 1] || null, proj = cur.tipo === 'Proyectado';
+  const ylab = r => r.Año + (r.tipo === 'Proyectado' ? ' (proy.)' : ''), lab = rows.map(ylab);
+  const mk = (l, k, cls, t = 'n') => kpi(l, t === 'p' ? fP(cur[k], 2) : fN(cur[k]), prv ? `vs ${prv.Año}: ${t === 'p' ? fSign((cur[k] - prv[k]) * 100, 2) + ' pp' : deltaTxt(prv[k], cur[k])}` : 'Año ' + cur.Año, cls, t === 'n' ? 'M' : '');
+  const fv = (t, v) => t === 'p' ? fP(v, 2) : fN(v, 2);
+  const lastReal = M.evaBase, pr = M.evaProj;
+  const varC = k => (lastReal && pr) ? pctChg(lastReal[k], pr[k]) : null;
+  const block = list => `<div class="tw" style="max-height:none"><table class="tbl"><thead><tr><th>Concepto</th>${rows.map(r => `<th>${ylab(r)}</th>`).join('')}${pr ? `<th>Var % ${String(lastReal.Año).slice(-2)}-${String(pr.Año).slice(-2)}</th>` : ''}<th class="txt">Justificación / nota</th></tr></thead><tbody>${list.map(([l, k, t, nk]) =>
+    `<tr class="${['wacc', 'eva', 'nopat'].includes(k) ? 'l1' : ''}"><td>${esc(l).replace(/^(\s|&nbsp;)+/, m => '&nbsp;'.repeat(3))}</td>${rows.map(r => `<td>${fv(t, r[k])}</td>`).join('')}${pr ? `<td>${varC(k) === null ? '—' : fPSign(varC(k))}</td>` : ''}<td class="txt" style="color:var(--mut);font-size:12px;min-width:240px">${esc(nk ? (M.evaNotas[nk] || '') : '')}</td></tr>`).join('')}</tbody></table></div>`;
+  const checks = rows.flatMap(evaChecks);
+  const tp = (T, a, b, tot) => `<div class="tw" style="max-height:none"><table class="tbl"><thead><tr><th>${a}</th><th>${tot[0]}</th><th>${tot[1]}</th><th>Participación</th><th>Ponderación</th></tr></thead><tbody>${T.rows.map(r => `<tr><td>${esc(r.e || r.s)}</td><td>${fN(r.m, 2)}</td><td>${fP(r.c, 2)}</td><td>${fP(r.part, 2)}</td><td>${fP(r.pond, 2)}</td></tr>`).join('')}<tr class="l0"><td>Total</td><td>${fN(T.total, 2)}</td><td></td><td>${fP(1, 0)}</td><td>${fP(sum(T.rows.map(r => r.pond)), 2)}</td></tr></tbody></table></div>`;
+  view().innerHTML = pageHead('EVA ' + evaYears(), 'Valor económico agregado · EVA = NOPAT − Capital invertido × WACC · impuesto, costo de deuda por entidad y TIO de socios según el archivo de análisis') +
+    `<div class="ctl">${sel('evY', rows.map(r => [r.Año, ylab(r)]), u.y, 'Año para KPI y detalle')}${resetBtn}</div>` +
+    (M.evaSinParam.length ? `<div class="callout">No se calculó el EVA de ${M.evaSinParam.join(', ')}: faltan parámetros EVA (obligaciones por entidad, aportes por socio y tasa) o datos de patrimonio, deuda y EBIT. Cárguelos desde el Excel de análisis.</div>` : '') +
+    (checks.length ? `<div class="callout"><b>Revisión de consistencia de los insumos.</b><ul style="margin:6px 0 0;padding-left:18px">${checks.map(c => `<li>${esc(c)}</li>`).join('')}</ul></div>` : '') +
+    `<div class="kpis">${mk('EVA ' + cur.Año + (proj ? ' (proy.)' : ''), 'eva', cur.eva > 0 ? 'good' : 'bad')}${mk('NOPAT', 'nopat', '')}${mk('Cargo de capital', 'cargo', 't3')}${mk('WACC', 'wacc', 't2', 'p')}${mk('ROIC', 'roic', 't4', 'p')}${kpi('Resultado de valor', badgeVal(cur.res), `Spread ${fPSign(cur.spread, 2)}`, cur.eva > 0 ? 'good' : 'bad')}</div>` +
+    `<div class="grid g2"><div class="panel"><h3>EVA por año</h3><p class="hint">Años reales y proyectado (ocre) (M)</p><div class="cbox"><canvas id="cEvE"></canvas></div></div>
+      <div class="panel"><h3>NOPAT frente al cargo de capital</h3><p class="hint">El EVA es la diferencia entre ambos (M)</p><div class="cbox"><canvas id="cEvA"></canvas></div></div></div>
+     <div class="grid g2"><div class="panel"><h3>Composición del WACC</h3><p class="hint">Aporte de la deuda (después de impuestos) y del patrimonio al costo de capital</p><div class="cbox short"><canvas id="cEvB"></canvas></div></div>
+      <div class="panel"><h3>ROIC frente a WACC</h3><p class="hint">Rentabilidad del capital invertido y su costo</p><div class="cbox short"><canvas id="cEvR"></canvas></div></div></div>
+     <div class="grid g2"><div class="panel"><h3>Del EBIT al EVA · ${ylab(cur)}</h3><p class="hint">Cascada en millones</p><div class="cbox short"><canvas id="cEvW"></canvas></div></div>
+      <div class="panel"><h3>Estructura de capital · ${ylab(cur)}</h3><p class="hint">Deuda con costo y patrimonio sobre el capital invertido</p><div class="cbox short"><canvas id="cEvC"></canvas></div></div></div>
+     <div class="panel" style="margin-bottom:16px"><h3>1. Datos de entrada</h3><p class="hint">Cifras en millones de COP. Los años reales salen de los estados financieros; ${pr ? 'el año proyectado aplica los supuestos de crecimiento del análisis' : ''}</p>${block(EV_IN)}</div>
+     <div class="grid g2"><div class="panel"><h3>Obligaciones financieras · ${ylab(cur)}</h3><p class="hint">Kd = suma de las ponderaciones</p>${tp(cur.deudaTP, 'Entidad', 0, ['Monto', 'Costo'])}</div>
+      <div class="panel"><h3>Aportes de socios · ${ylab(cur)}</h3><p class="hint">Ke = suma de las ponderaciones (TIO de cada socio)</p>${tp(cur.sociosTP, 'Socio', 0, ['Aportes', 'TIO'])}</div></div>
+     <div class="panel" style="margin-bottom:16px"><h3>2. Estructura de capital y WACC</h3>${block(EV_WACC)}</div>
+     <div class="panel"><h3>3. NOPAT y EVA</h3>${block(EV_EVA)}
+      <p class="note">WACC = wd × Kd × (1 − t) + we × Ke · wd = deuda con costo / (deuda con costo + patrimonio) · Resultado «Crea valor» solo si el EVA es mayor que cero.</p></div>`;
+  bindSel('evY', u, 'y', Number); bindReset(u, {y: null});
+  chart('cEvE', {type: 'bar', data: {labels: lab, datasets: [{label: 'EVA', data: rows.map(r => r.eva), backgroundColor: rows.map(r => r.tipo === 'Proyectado' ? OCHRE : NEG), borderRadius: 4, maxBarThickness: 64}]},
+    options: {layout: {padding: {bottom: 28}}, plugins: {legend: {display: false}, vlabels: {fmt: fN}, tooltip: tipL(v => fN(v) + ' M')}, scales: {y: ax(yAxisM), x: axX()}}});
+  chart('cEvA', {type: 'bar', data: {labels: lab, datasets: [bar('NOPAT', rows.map(r => r.nopat), BLUE), bar('Cargo de capital', rows.map(r => r.cargo), SKY)]},
+    options: {layout: {padding: {top: 16}}, plugins: {vlabels: {fmt: fN}, tooltip: tipL(v => fN(v) + ' M')}, scales: {y: ax(yAxisM), x: axX()}}});
+  chart('cEvB', {type: 'bar', data: {labels: lab, datasets: [bar('Componente de la deuda', rows.map(r => r.cDeuda), OCHRE, {stack: 's'}), bar('Componente del patrimonio', rows.map(r => r.cPat), BLUE, {stack: 's'})]},
+    options: {plugins: {tooltip: tipL(v => fP(v, 2))}, scales: {y: ax(v => fP(v, 0), {stacked: true}), x: axX({stacked: true})}}});
+  chart('cEvR', {type: 'bar', data: {labels: lab, datasets: [bar('ROIC', rows.map(r => r.roic), BLUE), bar('WACC', rows.map(r => r.wacc), OCHRE)]},
+    options: {layout: {padding: {top: 16}}, plugins: {vlabels: {fmt: v => fP(v, 1)}, tooltip: tipL(v => fP(v, 2))}, scales: {y: ax(v => fP(v, 0)), x: axX()}}});
+  wfChart('cEvW', [{l: 'EBIT', v: cur.ebit, total: true}, {l: 'Impuestos', v: -(cur.ebit - cur.nopat)}, {l: 'NOPAT', v: cur.nopat, total: true}, {l: 'Cargo de capital', v: -cur.cargo}, {l: 'EVA', v: cur.eva, total: true}], 'EVA');
+  chart('cEvC', {type: 'doughnut', data: {labels: ['Deuda con costo', 'Patrimonio'], datasets: [{data: [cur.deuda, cur.pat], backgroundColor: [OCHRE, BLUE], borderColor: '#fff', borderWidth: 2}]},
+    options: {cutout: '58%', plugins: {tooltip: {callbacks: {label: c => ` ${c.label}: ${fN(c.parsed)} M (${fP(c.parsed / cur.ci)})`}}}}});
+}
+
+/* ---------- SENSIBILIDAD EVA ---------- */
+function tabSENS() {
+  const u = ui.sens, rows = M.evaAll;
+  if (!rows.length) { view().innerHTML = pageHead('Sensibilidad EVA', '') + noData('No hay datos suficientes para la sensibilidad: se requiere el cálculo del EVA.'); return; }
+  if (!rows.some(r => r.Año === u.y)) { u.y = M.evaBase ? M.evaBase.Año : rows[0].Año; u.row = null; }
+  if (!u.step) u.step = 0.05;
+  const row = rows.find(r => r.Año === u.y), ylab = r => r.Año + (r.tipo === 'Proyectado' ? ' (proyectado)' : '');
+  const mkAx = c => [-3, -2, -1, 0, 1, 2, 3].map(k => k === 0 ? c : Math.max(0.01, +(c + k * u.step).toFixed(6)));
+  const kdAx = mkAx(row.kd), keAx = mkAx(row.ke), fn = (kd, ke) => evaAt(row, kd, ke);
+  const kmin = Math.max(0.01, row.kd - 0.2), kmax = row.kd + 0.2, emin = Math.max(0.01, row.ke - 0.2), emax = row.ke + 0.2;
+  const sk = u.row === row.Año + '|' + u.step;
+  if (!sk) { u.row = row.Año + '|' + u.step; u.kd = row.kd; u.ke = row.ke; }
+  const keStar = row.we ? (row.roic - row.wd * row.kd * (1 - row.tasa)) / row.we : null;
+  const all = kdAx.flatMap(a => keAx.map(b => fn(a, b)));
+  const yr = M.eva.length > 1 ? M.eva[0].Año + '-' + M.eva[M.eva.length - 1].Año : (M.eva[0] ? M.eva[0].Año : '');
+  view().innerHTML = pageHead('Sensibilidad EVA ' + yr, 'Cómo cambia el EVA al variar el costo de la deuda (Kd) y del patrimonio (Ke) alrededor de los valores calculados') +
+    `<div class="ctl">${sel('seY', rows.map(r => [r.Año, ylab(r)]), u.y, 'Año analizado')}${sel('seS', [[0.025, '± 2,5 puntos por paso'], [0.05, '± 5 puntos por paso'], [0.1, '± 10 puntos por paso']], u.step, 'Amplitud de la matriz')}${resetBtn}</div>` +
+    `<div class="kpis">${kpi('EVA ' + row.Año + (row.tipo === 'Proyectado' ? ' (proy.)' : ''), fN(row.eva), `Kd ${fP(row.kd, 2)} · Ke ${fP(row.ke, 2)}`, row.eva > 0 ? 'good' : 'bad', 'M')}
+      ${kpi('WACC', fP(row.wacc, 2), `ROIC ${fP(row.roic, 2)}`, 't2')}
+      ${kpi('Rango del EVA en la matriz', `${fN(Math.min(...all))} a ${fN(Math.max(...all))}`, 'Mínimo y máximo de la cuadrícula', 't3', 'M')}
+      ${kpi('Ke de equilibrio (EVA = 0)', fP(keStar, 1), 'Con el Kd calculado', 't4')}</div>` +
+    `<div class="grid g2"><div class="panel"><h3>Matriz de sensibilidad · EVA ${ylab(row)} (M)</h3><p class="hint">Filas: Kd · Columnas: Ke. El recuadro oscuro marca los valores calculados</p>${heatTable(kdAx, keAx, fn, {kd: row.kd, ke: row.ke})}</div>
+      <div class="panel"><h3>Simulador</h3><p class="hint">Mueva Kd y Ke y vea el EVA recalculado</p>
+       <div class="ctl" style="border:0;padding:0"><label>Kd: <b id="seKdV"></b><input type="range" id="seKd" min="${kmin}" max="${kmax}" step="0.0025" value="${u.kd}"></label>
+       <label>Ke: <b id="seKeV"></b><input type="range" id="seKe" min="${emin}" max="${emax}" step="0.0025" value="${u.ke}"></label></div>
+       <div id="seOut" class="kpis" style="margin-top:12px"></div></div></div>
+     <div class="panel"><h3>EVA según Ke, por nivel de Kd</h3><p class="hint">Cada línea fija un Kd; el eje horizontal es el Ke (M)</p><div class="cbox tall"><canvas id="cSeL"></canvas></div></div>`;
+  bindSel('seY', u, 'y', Number); bindSel('seS', u, 'step', Number); bindReset(u, {y: null, step: 0.05, row: null});
+  const upd = () => { u.kd = +$('#seKd').value; u.ke = +$('#seKe').value; $('#seKdV').textContent = fP(u.kd, 2); $('#seKeV').textContent = fP(u.ke, 2);
+    const eva = evaAt(row, u.kd, u.ke), w = row.wd * u.kd * (1 - row.tasa) + row.we * u.ke, sp = row.roic - w;
+    $('#seOut').innerHTML = kpi('EVA simulado', fN(eva), `Δ vs calculado: ${fSign(eva - row.eva)} M`, eva > 0 ? 'good' : 'bad', 'M') + kpi('WACC simulado', fP(w, 2), `Δ ${fSign((w - row.wacc) * 100, 2)} pp`, 't2') + kpi('Spread', fPSign(sp, 2), 'ROIC − WACC', 't4'); };
+  $('#seKd').oninput = upd; $('#seKe').oninput = upd; upd();
+  const ramp = ['#D6E0EA', '#B3C6D9', '#8BA9C6', '#5F88B0', '#3A6A98', '#1F4E79', '#14304D'];
+  chart('cSeL', {type: 'line', data: {labels: keAx.map(k => fP(k, 1)), datasets: kdAx.map((kd, i) => ({label: 'Kd ' + fP(kd, 1), data: keAx.map(ke => fn(kd, ke)), borderColor: ramp[i], backgroundColor: ramp[i], borderWidth: 2, pointRadius: 3}))},
+    options: {plugins: {tooltip: tipL(v => fN(v) + ' M')}, scales: {y: ax(yAxisM, {title: {display: true, text: 'EVA (M)'}}), x: axX({title: {display: true, text: 'Ke'}})}}});
+}
+</script>
+<script>
+'use strict';
+/* =====================  ADMINISTRADOR DASHBOARD  ===================== */
+function storageKB() { try { return ((lsGet(LS.data) || '').length + (lsGet(LS.meta) || '').length) / 1024; } catch (e) { return 0; } }
+function tabAD() {
+  const E = state.data.estados, cn = new Set(E.map(r => norm(canonEstado(r.Estado_Financiero)) + '|' + norm(r.Concepto))).size;
+  const chks = integrity(M), okN = chks.filter(c => c.status === 'ok').length, failN = chks.filter(c => c.status === 'fail').length, ndN = chks.filter(c => c.status === 'nd').length;
+  const byEst = {}, byYear = {}, byCat = {};
+  E.forEach(r => { const e = canonEstado(r.Estado_Financiero), c = r.Categoria || '(sin categoría)'; byEst[e] = (byEst[e] || 0) + 1; byYear[r.Año] = (byYear[r.Año] || 0) + 1; byCat[c] = (byCat[c] || 0) + 1; });
+  const stored = !!lsGet(LS.data);
+  const hist = state.meta.history || [];
+  const cover = []; M.estados.forEach(e => { cover.push(`<tr class="l0"><td colspan="${M.years.length + 1}">${esc(e)}</td></tr>`); (M.order[e] || []).forEach(c => cover.push(`<tr><td>${esc(c)}</td>${M.years.map(y => `<td>${M.g(e, c, y) === null ? '<span style="color:#B3433F">falta</span>' : '<span style="color:#2F7D5B">●</span>'}</td>`).join('')}</tr>`)); });
+  view().innerHTML = pageHead('Administrador Dashboard', 'Estado y calidad de los datos que alimentan el dashboard') +
+    (failN ? `<div class="callout">Hay ${failN} controles contables que no cuadran. Revise la tabla de controles antes de usar los indicadores.</div>` : `<div class="callout info">Todos los controles contables evaluables cuadran (tolerancia ±1,5 M por redondeo).</div>`) +
+    `<div class="kpis">${kpi('Registros', fN(E.length), 'Estados financieros', '')}${kpi('Conceptos únicos', fN(cn), `${M.estados.length} estados financieros`, 't2')}${kpi('Rango de años', `${M.years[0]}–${M.last}`, `${M.years.length} años · proyección ${M.proj}`, 't3')}
+     ${kpi('Parámetros EVA', M.evaAll.length ? M.evaAll.length + ' años' : 'Sin datos', M.evaAll.length ? `${evaYears()} · ${M.evaAll[0].deudaT.length} entidades · ${M.evaAll[0].sociosT.length} socios` : 'Cargue el Excel de análisis', 't4')}${kpi('Controles contables', `${okN}/${chks.length}`, `${failN} fallan · ${ndN} sin datos`, failN ? 'bad' : 'good')}
+     ${kpi('Última modificación', `<span style="font-size:17px">${esc(fDate(state.meta.lastModified))}</span>`, esc(state.meta.file || ''), 't3')}${kpi('Fuente activa', state.meta.source === 'original' ? 'Original' : 'Cargada', stored ? `En localStorage · ${fN(storageKB(), 1)} KB` : 'Respaldo incrustado en el HTML', stored ? 't2' : '')}</div>` +
+    `<div class="grid g3"><div class="panel"><h3>Registros por estado</h3><div class="cbox short"><canvas id="cAdE"></canvas></div></div>
+      <div class="panel"><h3>Registros por año</h3><div class="cbox short"><canvas id="cAdY"></canvas></div></div>
+      <div class="panel"><h3>Registros por categoría</h3><div class="cbox short"><canvas id="cAdC"></canvas></div></div></div>` +
+    `<div class="grid g2"><div class="panel"><h3>Controles de integridad contable</h3><p class="hint">Cuadres entre cuentas y entre estados financieros</p>
+      <div class="tw"><table class="tbl"><thead><tr><th>Control</th><th>Año</th><th>Diferencia</th><th>Estado</th></tr></thead><tbody>${chks.map(c => `<tr><td>${esc(c.name)}</td><td>${c.y}</td><td>${c.diff === null ? '—' : fN(c.diff, 2)}</td><td>${c.status === 'ok' ? '<span class="badge b-lo">● Cuadra</span>' : c.status === 'fail' ? '<span class="badge b-hi">▲ No cuadra</span>' : '<span class="badge b-nt">n/d</span>'}</td></tr>`).join('')}</tbody></table></div></div>
+      <div class="panel"><h3>Cobertura concepto × año</h3><p class="hint">Qué cuentas tienen dato en cada año</p><div class="tw"><table class="tbl"><thead><tr><th>Concepto</th>${M.years.map(y => `<th>${y}</th>`).join('')}</tr></thead><tbody>${cover.join('')}</tbody></table></div></div></div>` +
+    `<div class="panel"><h3>Historial de actualizaciones</h3>${hist.length ? `<div class="tw"><table class="tbl"><thead><tr><th class="txt">Fecha</th><th class="txt">Origen</th><th class="txt">Modo</th><th class="txt">Detalle</th></tr></thead><tbody>${hist.map(h => `<tr><td class="txt">${esc(fDate(h.ts))}</td><td class="txt">${esc(h.file)}</td><td class="txt">${esc(h.mode)}</td><td class="txt">${esc(h.detail)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Aún no hay actualizaciones: el dashboard usa los datos originales.</div>'}</div>`;
+  const dn = (id, o, cols) => chart(id, {type: 'doughnut', data: {labels: Object.keys(o), datasets: [{data: Object.values(o), backgroundColor: cols, borderColor: '#fff', borderWidth: 2}]}, options: {cutout: '58%'}});
+  dn('cAdE', byEst, [BLUE, TEAL, OCHRE, PLUM, SKY]);
+  const ky = Object.keys(byYear).sort();
+  chart('cAdY', {type: 'bar', data: {labels: ky, datasets: [{label: 'Registros', data: ky.map(k => byYear[k]), backgroundColor: ky.map(k => yCol(+k)), borderRadius: 4, maxBarThickness: 50}]}, options: {layout: {padding: {top: 16}}, plugins: {legend: {display: false}, vlabels: {fmt: v => String(v)}}, scales: {y: ax(v => fN(v), {beginAtZero: true}), x: axX()}}});
+  const kc = Object.keys(byCat);
+  chart('cAdC', {type: 'bar', data: {labels: kc, datasets: [{label: 'Registros', data: kc.map(k => byCat[k]), backgroundColor: BLUE, borderRadius: 3, maxBarThickness: 18}]}, options: {indexAxis: 'y', layout: {padding: {right: 30}}, plugins: {legend: {display: false}, vlabels: {fmt: v => String(v)}}, scales: {x: ax(v => fN(v), {beginAtZero: true}), y: axX({ticks: {font: {size: 11}}})}}});
+}
+
+/* =====================  ADMINISTRADOR (acceso y carga)  ===================== */
+const fnv = s => { let h1 = 0x811c9dc5, h2 = 0x01000193 ^ 0xabcdef; for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); h1 ^= c; h1 = Math.imul(h1, 16777619) >>> 0; h2 = (Math.imul(h2 ^ c, 2246822519) + i) >>> 0; } return h1.toString(16).padStart(8, '0') + h2.toString(16).padStart(8, '0'); };
+async function shaHex(s) { try { if (window.crypto && crypto.subtle) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); } } catch (e) {} return null; }
+async function pwStore(s) { return {sha: await shaHex(s), fnv: fnv(s)}; }
+async function pwCheck(s) {
+  let st = CONF.pw; try { const v = lsGet(LS.pw); if (v) st = JSON.parse(v); } catch (e) {}
+  const sha = await shaHex(s);
+  return (st.sha && sha) ? sha === st.sha : fnv(s) === st.fnv;
+}
+let fails = 0, lockUntil = 0;
+const isAuthed = () => { try { return sessionStorage.getItem('imcol_auth') === '1'; } catch (e) { return ui.adm.authed; } };
+const setAuthed = v => { ui.adm.authed = v; try { v ? sessionStorage.setItem('imcol_auth', '1') : sessionStorage.removeItem('imcol_auth'); } catch (e) {} };
+
+/* --- Lectura y validación de archivos --- */
+let pending = null;
+const decodeBuf = buf => { try { return new TextDecoder('utf-8', {fatal: true}).decode(buf); } catch (e) { return new TextDecoder('windows-1252').decode(buf); } };
+function parseCSV(text) {
+  text = text.replace(/^﻿/, '');
+  const first = text.split(/\r?\n/)[0] || '', cnt = d => first.split(d).length - 1, delim = [';', ',', '\t'].sort((a, b) => cnt(b) - cnt(a))[0];
+  const rows = []; let row = [], cur = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === delim) { row.push(cur); cur = ''; }
+    else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cur); cur = ''; rows.push(row); row = []; }
+    else cur += ch;
+  }
+  if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(c => String(c).trim() !== ''));
+}
+function parseNum(v) {
+  if (isNum(v)) return v; if (v === null || v === undefined) return NaN;
+  let s = String(v).trim().replace(/\s|\$|COP/gi, ''); if (s === '') return NaN;
+  let neg = false; if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1); }
+  if (s.endsWith('%')) return NaN;
+  if (s.includes('.') && s.includes(',')) { s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, ''); }
+  else if (s.includes(',')) { s = /^-?\d{1,3}(,\d{3})+$/.test(s) ? s.replace(/,/g, '') : s.replace(',', '.'); }
+  else if ((s.match(/\./g) || []).length > 1) s = s.replace(/\./g, '');
+  if (!/^-?\d+(\.\d+)?([eE][-+]?\d+)?$/.test(s)) return NaN;
+  const n = parseFloat(s); return neg ? -n : n;
+}
+function identify(name, headers) {
+  const nn = norm(name), hs = headers.map(norm);
+  if (nn.startsWith('eva ') && !/sensib|escenar|historico/.test(nn)) return {kind: 'eva'};
+  if (nn === 'analisis y riesgos') return {kind: 'analisis'};
+  if (DERIVED_SHEETS.includes(nn) || nn === 'parametros eva') return {kind: 'derived'};
+  const mapFor = sk => { const m = {}; Object.entries(SCHEMAS[sk].cols).forEach(([col, al]) => { const a = [norm(col)].concat(al); const i = hs.findIndex(h => a.includes(h)); if (i >= 0) m[col] = i; }); return m; };
+  const byName = Object.keys(SCHEMAS).find(k => (SCHEMAS[k].sheets || []).includes(nn));
+  if (byName) return {kind: 'schema', key: byName, map: mapFor(byName)};
+  const m = mapFor('estados'), found = SCHEMAS.estados.required.filter(r => r in m).length;
+  if (found / SCHEMAS.estados.required.length >= 0.5) return {kind: 'schema', key: 'estados', map: m};
+  return {kind: 'unknown'};
+}
+/* Lectura de la hoja «Eva …»: tablas de obligaciones por entidad, aportes por socio, tasa de impuesto y supuestos de crecimiento */
+function parseEvaSheet(name, aoa) {
+  const res = {sheet: name, kind: 'schema', key: 'eva', label: SCHEMAS.eva.label, missing: [], rows: [], errors: [], warnings: [], total: 0, preview: [], headers: [], evaData: null};
+  const cell = (r, c) => (aoa[r] && aoa[r][c] !== undefined) ? aoa[r][c] : null, txt = v => v === null || v === undefined ? '' : String(v).trim();
+  const anios = {}, getY = y => (anios[y] ??= {tasa: null, deuda: [], socios: []});
+  const readTable = (r, c, y, kind) => {
+    for (let rr = r + 2; rr < aoa.length; rr++) {
+      const nm = txt(cell(rr, c)); if (nm === '' || /^total$/i.test(nm)) break;
+      const m = parseNum(cell(rr, c + 1)), cst = parseNum(cell(rr, c + 2)); res.total++;
+      if (!isNum(m) || m < 0) { res.errors.push({row: rr + 1, msg: `${kind === 'deuda' ? 'Monto' : 'Aportes'} inválido para «${nm}» (${y})`}); continue; }
+      if (!isNum(cst) || cst < 0 || cst > 1.5) { res.errors.push({row: rr + 1, msg: `${kind === 'deuda' ? 'Costo' : 'TIO'} inválido para «${nm}» (${y}); exprese porcentajes como decimales (0,25)`}); continue; }
+      getY(y)[kind].push(kind === 'deuda' ? {e: nm, m, c: cst} : {s: nm, m, c: cst}); res.rows.push({y, nm});
+    }
+  };
+  aoa.forEach((row, r) => (row || []).forEach((v, c) => { const t = txt(v); let m;
+    if ((m = t.match(/^Obligaciones financieras\s+(\d{4})$/i))) readTable(r, c, +m[1], 'deuda');
+    else if ((m = t.match(/^Participaci[oó]n Socios\s+(\d{4})$/i))) readTable(r, c, +m[1], 'socios'); }));
+  const hr = aoa.findIndex(r => r && txt(r[0]).toLowerCase() === 'concepto');
+  const yrs = hr < 0 ? [] : [1, 2, 3].map(c => parseInt(txt(cell(hr, c)).slice(0, 4), 10));
+  if (hr < 0 || yrs.some(y => !(y >= 1990 && y <= 2100))) { res.errors.push({row: hr + 1 || 1, msg: 'No se encontró la fila de encabezados «Concepto | año | año | año (Proyectado)»'}); return res; }
+  const map = {'activos totales': 'act', 'obligaciones financieras deuda con costo': 'deuda', 'creditos y prestamos corrientes': 'dC', 'creditos y prestamos no corrientes': 'dNC',
+    'patrimonio total': 'pat', 'aportes de socios': 'aportes', 'utilidad operativa ebit': 'ebit', 'impuesto a la renta': 'tasa'};
+  const proy = {}, notas = {}; let stop = false;
+  for (let r = hr + 1; r < aoa.length; r++) {
+    const lab = txt(cell(r, 0)); if (/^2\./.test(lab)) stop = true;
+    if (lab && lab.toLowerCase() !== 'concepto' && txt(cell(r, 5)) && !/^\d\./.test(lab)) notas[lab.replace(/\s+/g, ' ').trim()] = txt(cell(r, 5));
+    if (stop) continue; const k = map[norm(lab)]; if (!k) continue;
+    if (k === 'tasa') yrs.forEach((y, i) => { const v = parseNum(cell(r, 1 + i)); if (isNum(v) && v >= 0 && v <= 1) getY(y).tasa = v; else res.errors.push({row: r + 1, msg: `Tasa de impuesto inválida para ${y}`}); });
+    else { const g = parseNum(cell(r, 4)); if (isNum(g)) proy[k] = g; else res.errors.push({row: r + 1, msg: `Falta el supuesto de crecimiento de «${lab}»`}); }
+  }
+  yrs.forEach(y => { const a = anios[y]; if (!a || !a.deuda.length) res.errors.push({row: 1, msg: `Falta la tabla de obligaciones financieras ${y}`}); if (!a || !a.socios.length) res.errors.push({row: 1, msg: `Falta la tabla de participación de socios ${y}`}); });
+  if (!res.errors.length) res.evaData = {anios: Object.fromEntries(Object.entries(anios).map(([y, v]) => [y, v])), proy, proyAnio: yrs[2], notas};
+  if (!res.evaData) res.rows = [];
+  return res;
+}
+function parseAnalisis(name, aoa) {
+  const res = {sheet: name, kind: 'schema', key: 'analisis', label: SCHEMAS.analisis.label, missing: [], rows: [], errors: [], warnings: [], total: 0, preview: [], headers: [], anaData: null};
+  const col = aoa.map(r => (r && r[1] !== null && r[1] !== undefined) ? String(r[1]).trim() : '').filter(Boolean), out = [];
+  for (let i = 0; i < col.length; i++) if (/^([A-E]\.\s|Conclusi)/i.test(col[i]) && col[i + 1] && !/^([A-E]\.\s|Conclusi)/i.test(col[i + 1])) { out.push({t: col[i], p: col[i + 1]}); i++; }
+  res.total = out.length;
+  if (out.length) { res.anaData = out; res.rows = out; } else res.warnings.push('No se encontraron secciones de análisis cualitativo; se conserva el texto actual.');
+  return res;
+}
+function analyzeTable(name, aoa) {
+  const hi = aoa.findIndex(r => r && r.filter(c => c !== null && c !== undefined && String(c).trim() !== '').length >= 2);
+  if (hi < 0) return {sheet: name, kind: 'empty'};
+  const headers = (aoa[hi] || []).map(h => String(h ?? '').trim()), id = identify(name, headers);
+  if (id.kind === 'eva') return parseEvaSheet(name, aoa);
+  if (id.kind === 'analisis') return parseAnalisis(name, aoa);
+  if (id.kind !== 'schema') return {sheet: name, kind: id.kind, headers};
+  const S = SCHEMAS[id.key], missing = S.required.filter(r => !(r in id.map));
+  const res = {sheet: name, kind: 'schema', key: id.key, label: S.label, missing, rows: [], errors: [], warnings: [], total: 0, preview: [], headers};
+  if (missing.length) return res;
+  const seen = new Set(), ar = aoa.slice(hi + 1);
+  ar.forEach((cells, i) => {
+    if (!cells || cells.every(c => c === null || c === undefined || String(c).trim() === '')) return;
+    res.total++; const rn = hi + 2 + i, g = col => id.map[col] === undefined ? undefined : cells[id.map[col]];
+    const errs = [], o = {};
+    const need = c => { const v = g(c); return (v === null || v === undefined || String(v).trim() === '') ? null : v; };
+    const e = need('Estado_Financiero'), c = need('Concepto'); if (e === null) errs.push('Estado financiero vacío'); if (c === null) errs.push('Concepto vacío');
+    const yv = parseNum(g('Año')); if (!Number.isInteger(yv) || yv < 1990 || yv > 2100) errs.push(`Año inválido («${g('Año') ?? ''}»); debe ser un entero entre 1990 y 2100`);
+    const v = parseNum(g('Valor')); if (!isNum(v)) errs.push(`Valor no numérico («${g('Valor') ?? ''}»)`);
+    if (!errs.length) { o.Estado_Financiero = canonEstado(e); o.Concepto = String(c).trim(); o.Año = yv; o.Valor = v; o.Categoria = String(g('Categoria') ?? '').trim();
+      if (![ES.BG, ES.ER, ES.FE].includes(o.Estado_Financiero)) res.warnings.push(`Fila ${rn}: estado «${o.Estado_Financiero}» no reconocido; solo aparecerá en Comparativo y en el estado de los datos`); }
+    if (!errs.length) { const k = S.key.map(cc => typeof o[cc] === 'string' ? norm(o[cc]) : o[cc]).join('|'); if (seen.has(k)) errs.push('Registro duplicado (misma clave: Estado financiero + Concepto + Año)'); else seen.add(k); }
+    if (res.preview.length < 25) res.preview.push({cells: Object.keys(S.cols).filter(cc => cc in id.map).map(cc => g(cc)), err: errs.length > 0});
+    if (errs.length) errs.forEach(m => res.errors.push({row: rn, msg: m})); else res.rows.push(o);
+  });
+  return res;
+}
+async function handleFile(file) {
+  const ext = (file.name.split('.').pop() || '').toLowerCase(), tables = [];
+  try {
+    const buf = await file.arrayBuffer();
+    if (['csv', 'txt', 'tsv'].includes(ext)) tables.push([file.name.replace(/\.[^.]+$/, ''), parseCSV(decodeBuf(buf))]);
+    else if (['xlsx', 'xls', 'xlsm'].includes(ext)) {
+      if (typeof XLSX === 'undefined') { toast('No se pudo cargar SheetJS desde el CDN; revise su conexión o use un archivo CSV.', 'bad'); return; }
+      const wb = XLSX.read(buf, {type: 'array'});
+      wb.SheetNames.forEach(n => tables.push([n, XLSX.utils.sheet_to_json(wb.Sheets[n], {header: 1, raw: true, defval: null})]));
+    } else { toast('Formato no admitido: use .csv o .xlsx', 'bad'); return; }
+  } catch (e) { console.error(e); toast('No se pudo leer el archivo: ' + e.message, 'bad'); return; }
+  const an = tables.map(([n, a]) => analyzeTable(n, a));
+  pending = {file: file.name, tables: an, mode: (pending && pending.mode) || 'merge', skip: false};
+  renderPreview();
+}
+function mergeData(base, p) {
+  const next = clone(base);
+  p.tables.filter(t => t.kind === 'schema' && !t.missing.length && t.rows.length).forEach(t => {
+    if (t.key === 'eva') { if (t.evaData) next.eva = clone(t.evaData); return; }
+    if (t.key === 'analisis') { if (t.anaData) next.analisis = clone(t.anaData); return; }
+    if (p.mode === 'replace') { next[t.key] = clone(t.rows); return; }
+    const kf = r => SCHEMAS[t.key].key.map(c => typeof r[c] === 'string' ? norm(r[c]) : r[c]).join('|'), mp = new Map((next[t.key] || []).map(r => [kf(r), r]));
+    t.rows.forEach(r => mp.set(kf(r), r)); next[t.key] = [...mp.values()];
+  });
+  return next;
+}
+function pendingStats() {
+  const ok = pending.tables.filter(t => t.kind === 'schema' && !t.missing.length);
+  const errs = pending.tables.flatMap(t => (t.errors || []).map(e => Object.assign({t: t.label}, e)));
+  const structural = pending.tables.filter(t => t.kind === 'schema' && t.missing.length);
+  const est = ok.find(t => t.key === 'estados');
+  const rows = sum(ok.map(t => t.rows.length)), total = sum(pending.tables.filter(t => t.kind === 'schema').map(t => t.total));
+  const yrs = est ? [...new Set(est.rows.map(r => r.Año))].sort() : [];
+  return {ok, errs, structural, est, rows, total, yrs, concepts: est ? new Set(est.rows.map(r => norm(r.Concepto))).size : 0};
+}
+function renderPreview() {
+  const box = document.getElementById('prev'); if (!box) return;
+  if (!pending) { box.innerHTML = ''; setBtns(); return; }
+  const s = pendingStats(), P = pending;
+  const kindTxt = t => t.kind === 'schema' ? (t.missing.length ? `<span class="badge b-hi">▲ Faltan columnas: ${esc(t.missing.join(', '))}</span>` : `<span class="badge b-lo">● ${esc(t.label)}</span>`) : t.kind === 'derived' ? '<span class="badge b-in">Informativa (se recalcula, no se carga)</span>' : t.kind === 'empty' ? '<span class="badge b-nt">Vacía</span>' : '<span class="badge b-hi">▲ No reconocida</span>';
+  const warnings = pending.tables.flatMap(t => t.warnings || []);
+  let integ = [];
+  if (s.rows && !s.structural.length && (!s.errs.length || P.skip)) { try { const mm = buildModel(mergeData(state.data, P)); integ = integrity(mm).filter(c => c.status === 'fail'); } catch (e) { integ = []; } }
+  if (s.est && s.est.rows.length && !s.structural.length) {
+    const core = [[ES.BG, C.bg.act], [ES.BG, C.bg.pat], [ES.ER, C.er.ing], [ES.ER, C.er.ebit], [ES.ER, C.er.neta], [ES.FE, C.fe.cfo]];
+    try { const mm = buildModel(mergeData(state.data, P)); s.yrs.forEach(y => { const miss = core.filter(([e, c]) => mm.g(e, c, y) === null).map(x => x[1]); if (miss.length) warnings.push(`El año ${y} quedaría sin: ${miss.join(', ')}. Los indicadores de ese año aparecerán incompletos.`); }); } catch (e) {}
+  }
+  const prevT = (s.est || s.ok[0]);
+  box.innerHTML = `<div class="panel" style="margin-top:16px"><h3>Vista previa · ${esc(P.file)}</h3><p class="hint">Revise antes de actualizar; nada se guarda hasta pulsar «Actualizar dashboard»</p>
+    <div class="kpis">${kpi('Registros válidos', `${fN(s.rows)} <small>de ${fN(s.total)}</small>`, 'Listos para cargar', s.rows ? 'good' : 'bad')}${kpi('Conceptos', fN(s.concepts), 'Únicos en estados financieros', 't2')}
+      ${kpi('Rango de años', s.yrs.length ? s.yrs[0] + '–' + s.yrs[s.yrs.length - 1] : '—', s.yrs.length ? s.yrs.length + ' años' : 'Sin estados financieros', 't3')}${kpi('Errores', fN(s.errs.length + s.structural.length), s.errs.length || s.structural.length ? 'Ver detalle abajo' : 'Sin errores', s.errs.length || s.structural.length ? 'bad' : 'good')}
+      ${kpi('Advertencias', fN(warnings.length + integ.length), 'No bloquean la carga', 't3')}</div>
+    <div class="tw"><table class="tbl"><thead><tr><th>Hoja / tabla</th><th class="txt">Reconocida como</th><th>Filas</th><th>Válidas</th><th>Con error</th></tr></thead><tbody>${P.tables.map(t => `<tr><td>${esc(t.sheet)}</td><td class="txt">${kindTxt(t)}</td><td>${t.total ?? '—'}</td><td>${t.rows ? t.rows.length : '—'}</td><td>${t.errors ? new Set(t.errors.map(e => e.row)).size : '—'}</td></tr>`).join('')}</tbody></table></div>
+    ${s.structural.length ? `<p class="err-msg"><b>Validación de columnas:</b> ${s.structural.map(t => `la tabla «${esc(t.sheet)}» necesita las columnas ${esc(SCHEMAS[t.key].required.join(', '))} y no encontró ${esc(t.missing.join(', '))}`).join('; ')}.</p>` : ''}
+    ${pending.tables.some(t => t.kind === 'unknown') ? '<p class="err-msg">Hay tablas cuyas columnas no corresponden a ningún formato admitido. Use «Descargar plantilla» para ver el formato.</p>' : ''}
+    ${s.errs.length ? `<details class="dt" open><summary>${s.errs.length} errores encontrados</summary><ul class="errlist">${s.errs.slice(0, 120).map(e => `<li>${esc(e.t)} · fila ${e.row}: ${esc(e.msg)}</li>`).join('')}${s.errs.length > 120 ? `<li>… y ${s.errs.length - 120} más</li>` : ''}</ul></details>` : ''}
+    ${(warnings.length || integ.length) ? `<details class="dt"><summary>${warnings.length + integ.length} advertencias</summary><ul class="warnlist">${warnings.slice(0, 40).map(w => `<li>${esc(w)}</li>`).join('')}${integ.slice(0, 12).map(c => `<li>Tras la carga, «${esc(c.name)}» no cuadra en ${c.y} (diferencia ${fN(c.diff, 2)})</li>`).join('')}</ul></details>` : ''}
+    ${prevT && prevT.key === 'estados' && prevT.preview && prevT.preview.length ? `<details class="dt" open><summary>Primeras ${prevT.preview.length} filas de «${esc(prevT.sheet)}»</summary><div class="tw" style="max-height:300px;margin-top:8px"><table class="tbl"><thead><tr>${Object.keys(SCHEMAS.estados.cols).filter(c => prevT.headers.map(norm).some(h => [norm(c)].concat(SCHEMAS.estados.cols[c]).includes(h))).map(c => `<th>${esc(c.replace('_', ' '))}</th>`).join('')}</tr></thead><tbody>${prevT.preview.map(r => `<tr class="${r.err ? 'err' : ''}">${r.cells.map(c => `<td>${esc(isNum(c) ? (Number.isInteger(c) && c >= 1990 && c <= 2100 ? String(c) : fN(c, 2)) : c ?? '')}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details>` : ''}
+    </div>`;
+  setBtns();
+}
+function setBtns() {
+  const b = document.getElementById('btnUpd'), c = document.getElementById('btnCan'); if (!b) return;
+  const sk = document.getElementById('skipErr'); if (pending && sk) pending.skip = sk.checked;
+  let can = false;
+  if (pending) { const s = pendingStats(); can = s.rows > 0 && !s.structural.length && (!s.errs.length || pending.skip); }
+  b.disabled = !can; c.disabled = !pending;
+}
+async function commitPending() {
+  if (!pending) return; const s = pendingStats();
+  if (!(s.rows > 0 && !s.structural.length && (!s.errs.length || pending.skip))) { toast('Corrija los errores o marque «Omitir filas con error».', 'bad'); return; }
+  const next = mergeData(state.data, pending), up = new Set(s.ok.filter(t => t.rows.length).map(t => t.key));
+  state.data = next;
+  const detail = s.ok.filter(t => t.rows.length).map(t => `${t.label}: ${t.rows.length}`).join(' · ');
+  state.meta = {lastModified: new Date().toISOString(), source: 'cargado', file: pending.file, history: [{ts: new Date().toISOString(), file: pending.file, mode: pending.mode === 'replace' ? 'Reemplazar' : 'Combinar', detail}].concat(state.meta.history || []).slice(0, 15)};
+  const saved = persist(); pending = null;
+  M = buildModel(state.data); renderHeader(); renderView();
+  toast(saved ? 'Dashboard actualizado y guardado en este navegador.' : 'Dashboard actualizado, pero no se pudo guardar en localStorage: los cambios solo duran esta sesión.', saved ? 'good' : 'bad');
+}
+async function restoreOriginal() {
+  const ok = await askConfirm('Restaurar datos originales', 'Se eliminarán los datos cargados y el dashboard volverá a los datos originales incluidos en este archivo.', 'Restaurar');
+  if (!ok) return;
+  lsDel(LS.data); state.data = clone(ORIG);
+  state.meta = {lastModified: new Date().toISOString(), source: 'original', file: 'Datos originales (restaurados)', history: [{ts: new Date().toISOString(), file: 'Restauración', mode: 'Restaurar', detail: 'Datos originales del modelo Power BI'}].concat(state.meta.history || []).slice(0, 15)};
+  lsSet(LS.meta, JSON.stringify(state.meta)); pending = null; ui.esc.cust = null;
+  M = buildModel(state.data); renderHeader(); renderView(); toast('Datos originales restaurados.', 'good');
+}
+function download(name, content, mime) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([content], {type: mime})); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
+function exportXLSX() {
+  if (typeof XLSX === 'undefined') { toast('SheetJS no está disponible (CDN); use la plantilla CSV.', 'bad'); return; }
+  const wb = XLSX.utils.book_new(), d = state.data;
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d.estados.map(r => ({'Estado Financiero': r.Estado_Financiero, Concepto: r.Concepto, 'Año': r.Año, Valor: r.Valor, 'Categoría': r.Categoria}))), 'Base de Datos');
+  const flat = [];
+  Object.keys((d.eva && d.eva.anios) || {}).forEach(y => { const a = d.eva.anios[y]; flat.push({'Año': +y, Tipo: 'Tasa de impuesto', Detalle: '', Monto: '', 'Costo / TIO': a.tasa});
+    (a.deuda || []).forEach(x => flat.push({'Año': +y, Tipo: 'Obligación financiera', Detalle: x.e, Monto: x.m, 'Costo / TIO': x.c}));
+    (a.socios || []).forEach(x => flat.push({'Año': +y, Tipo: 'Aporte de socio', Detalle: x.s, Monto: x.m, 'Costo / TIO': x.c})); });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(flat), 'Parametros EVA');
+  XLSX.writeFile(wb, 'Imcolmedica_datos_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+}
+function templateCSV() {
+  const rows = [['Estado Financiero', 'Concepto', 'Año', 'Valor', 'Categoría'], [ES.BG, 'Activos Totales', M.proj, '85000.50', 'Activos'], [ES.ER, 'Total Ingreso Operativo', M.proj, '58000.25', 'Ingresos'], [ES.FE, 'Efectivo al final del período', M.proj, '600.10', 'Flujo Neto']];
+  download('plantilla_estados_financieros.csv', '﻿' + rows.map(r => r.join(',')).join('\r\n'), 'text/csv;charset=utf-8');
+}
+
+function tabADM() {
+  if (!isAuthed()) {
+    view().innerHTML = `<div class="gate"><h2>Acceso de administrador</h2><p>Ingrese la contraseña para cargar o restaurar datos.</p>
+      <form id="gateF" autocomplete="off"><label class="sr" for="pw">Contraseña</label><input class="field" type="password" id="pw" placeholder="Contraseña" autocomplete="current-password"><div class="err-msg" id="pwErr" role="alert"></div><button class="btn" type="submit">Ingresar</button></form></div>`;
+    $('#gateF').onsubmit = async ev => {
+      ev.preventDefault(); const now = Date.now();
+      if (now < lockUntil) { $('#pwErr').textContent = `Demasiados intentos. Espere ${Math.ceil((lockUntil - now) / 1000)} s.`; return; }
+      if (await pwCheck($('#pw').value)) { fails = 0; setAuthed(true); renderView(); toast('Sesión de administrador iniciada.', 'good'); }
+      else { fails++; if (fails >= 5) { lockUntil = Date.now() + 30000; fails = 0; $('#pwErr').textContent = 'Demasiados intentos. Espere 30 s.'; } else $('#pwErr').textContent = 'Contraseña incorrecta.'; $('#pw').select(); }
+    };
+    setTimeout(() => { const p = $('#pw'); if (p) p.focus(); }, 0); return;
+  }
+  const stored = !!lsGet(LS.data);
+  view().innerHTML = pageHead('Administrador', 'Carga de datos, actualización y restauración') +
+    `<div class="grid g21"><div>
+     <div class="panel"><h3>1. Cargar archivo</h3><p class="hint">Admite CSV y XLSX. Se detecta automáticamente el tipo de tabla por sus columnas (o por el nombre de la hoja).</p>
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Seleccionar archivo"><b>Arrastre un archivo aquí</b> o pulse para seleccionarlo<br><span style="font-size:12.5px">.csv · .xlsx</span></div>
+      <input type="file" id="file" accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsm" class="sr">
+      <div class="radio" role="radiogroup" aria-label="Modo de carga"><label><input type="radio" name="mode" value="merge" ${(!pending || pending.mode === 'merge') ? 'checked' : ''}> Combinar: agrega y actualiza por clave</label>
+       <label><input type="radio" name="mode" value="replace" ${pending && pending.mode === 'replace' ? 'checked' : ''}> Reemplazar las tablas incluidas en el archivo</label></div>
+      <div class="radio"><label><input type="checkbox" id="skipErr" ${pending && pending.skip ? 'checked' : ''}> Omitir filas con error y cargar el resto</label></div>
+      <div class="btnrow"><button class="btn sec" id="btnTpl">Descargar plantilla CSV</button><button class="btn sec" id="btnExp">Exportar datos actuales (XLSX)</button></div></div>
+     <div id="prev"></div>
+     <div class="panel" style="margin-top:16px"><h3>2. Aplicar cambios</h3><div class="btnrow" style="margin-top:0"><button class="btn sec" id="btnCan">Cancelar</button><button class="btn ok" id="btnUpd" disabled>Actualizar dashboard</button><button class="btn warn" id="btnRes" ${stored || state.meta.source !== 'original' ? '' : ''}>Restaurar datos originales</button></div>
+      <p class="note">Al actualizar se guardan los datos en este navegador (localStorage), se recalculan indicadores, EVA, y se refrescan gráficos, tablas y fecha de modificación. Los filtros se conservan.</p></div></div>
+     <div>
+      <div class="panel" style="margin-bottom:16px"><h3>Estado actual</h3><table class="tbl"><tbody><tr><td>Fuente</td><td>${esc(state.meta.file)}</td></tr><tr><td>Modificado</td><td>${esc(fDate(state.meta.lastModified))}</td></tr><tr><td>Registros</td><td>${fN(state.data.estados.length)}</td></tr><tr><td>Años</td><td>${M.years[0]}–${M.last}</td></tr><tr><td>Almacenamiento</td><td>${state.lsOK ? (stored ? 'localStorage (' + fN(storageKB(), 1) + ' KB)' : 'Respaldo incrustado') : 'localStorage no disponible'}</td></tr></tbody></table></div>
+      <div class="panel" style="margin-bottom:16px"><h3>Formato esperado</h3><div class="story"><p>Lo más simple es cargar el <b>Excel de análisis completo</b> (el mismo archivo): se leen tres hojas y el resto se reconoce como informativo porque se recalcula.</p><ul>
+       <li><b>Base de Datos</b>: <code>Estado Financiero, Concepto, Año, Valor, Categoría</code>.</li><li><b>Eva …</b>: tablas «Obligaciones financieras AAAA», «Participación Socios AAAA», tasa de impuesto y crecimientos del año proyectado.</li><li><b>Analisis y Riesgos</b>: texto cualitativo (columna B).</li></ul>
+       <p class="note">También acepta un CSV con las columnas de Base de Datos. Valores en millones, con costos y salidas de caja en negativo; porcentajes como decimales (0,15).</p></div></div>
+      <div class="panel" style="margin-bottom:16px"><h3>Logo de la empresa</h3><p class="hint">Cargue el logo oficial de Imcolmédica (PNG, JPG, SVG o WEBP, máx. 500 KB). Se muestra en el encabezado y se guarda en este navegador. Para dejarlo fijo en la publicación, guarde el archivo como <code>assets/logo-imcolmedica.png</code>.</p>
+       <input type="file" id="logoF" accept="image/png,image/jpeg,image/svg+xml,image/webp" class="sr"><div class="btnrow" style="margin-top:0"><button class="btn sec" id="btnLogo">Cargar logo</button><button class="btn sec" id="btnLogoX">Quitar logo cargado</button></div><div class="note" id="logoM"></div></div>
+      <div class="panel"><h3>Seguridad</h3><details class="dt"><summary>Cambiar contraseña</summary><form id="pwF" style="display:grid;gap:8px;margin-top:10px" autocomplete="off"><input class="field" type="password" id="pwA" placeholder="Contraseña actual"><input class="field" type="password" id="pwN" placeholder="Nueva contraseña (mín. 8 caracteres)"><div class="err-msg" id="pwM"></div><button class="btn sec" type="submit">Guardar contraseña</button></form></details>
+       <div class="btnrow"><button class="btn sec" id="btnOut">Cerrar sesión de administrador</button></div>
+       <p class="note">La contraseña protege la interfaz de carga en este equipo; al ser una página local sin servidor no equivale a seguridad de acceso a los datos.</p></div></div></div>`;
+  const fi = $('#file'), dz = $('#drop');
+  dz.onclick = () => fi.click(); dz.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fi.click(); } };
+  fi.onchange = () => { if (fi.files[0]) handleFile(fi.files[0]); fi.value = ''; };
+  ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('over'); }));
+  dz.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
+  $$('input[name=mode]').forEach(r => r.onchange = () => { if (pending) { pending.mode = r.value; renderPreview(); } });
+  $('#skipErr').onchange = () => { if (pending) { pending.skip = $('#skipErr').checked; renderPreview(); } };
+  $('#btnCan').onclick = () => { pending = null; renderPreview(); toast('Carga cancelada: no se modificó ningún dato.'); };
+  $('#btnUpd').onclick = commitPending; $('#btnRes').onclick = restoreOriginal; $('#btnTpl').onclick = templateCSV; $('#btnExp').onclick = exportXLSX;
+  $('#btnOut').onclick = () => { setAuthed(false); renderView(); };
+  $('#pwF').onsubmit = async e => { e.preventDefault(); const m = $('#pwM'); m.style.color = '';
+    if (!(await pwCheck($('#pwA').value))) { m.textContent = 'La contraseña actual no es correcta.'; return; }
+    if ($('#pwN').value.length < 8) { m.textContent = 'La nueva contraseña debe tener al menos 8 caracteres.'; return; }
+    lsSet(LS.pw, JSON.stringify(await pwStore($('#pwN').value))); m.style.color = '#2F7D5B'; m.textContent = 'Contraseña actualizada.'; $('#pwA').value = $('#pwN').value = ''; };
+  $('#btnLogo').onclick = () => $('#logoF').click();
+  $('#logoF').onchange = () => { const f = $('#logoF').files[0]; $('#logoF').value = ''; if (!f) return; const m = $('#logoM');
+    if (!/^image\/(png|jpeg|svg\+xml|webp)$/.test(f.type)) { m.textContent = 'Formato no admitido. Use PNG, JPG, SVG o WEBP.'; return; }
+    if (f.size > 500 * 1024) { m.textContent = 'El archivo supera 500 KB.'; return; }
+    const r = new FileReader(); r.onload = () => { lsSet(LS.logo, r.result); setLogo(); m.textContent = 'Logo cargado.'; }; r.readAsDataURL(f); };
+  $('#btnLogoX').onclick = () => { lsDel(LS.logo); setLogo(); $('#logoM').textContent = 'Logo cargado eliminado.'; };
+  renderPreview();
+}
+
+/* =====================  NAVEGACIÓN Y ARRANQUE  ===================== */
+/* Panel de administración: ya no es una pestaña. Se abre desde un enlace discreto del pie de página.
+   Ponga ENABLE_ADMIN en false para retirarlo por completo (por ejemplo, en una publicación pública). */
+const ENABLE_ADMIN = true;
+const SUBS = [['bg', () => 'Balance General', tabBG], ['er', () => 'Estado de resultados', tabER], ['fe', () => 'Flujo de efectivo', tabFE], ['rat', () => 'Ratios financieros', tabRAT],
+  ['cmp', () => 'Comparativo', tabCMP], ['res', () => 'Resumen ejecutivo', tabRES], ['rie', () => 'Análisis y riesgos', tabRIE],
+  ['evh', () => 'EVA ' + evaYears(), tabEVH]];
+const VIEWS = {admdash: tabAD, adm: tabADM}; SUBS.forEach(([k, , f]) => VIEWS[k] = f);
+/* Logo de la empresa: 1) el cargado desde Administrar datos (localStorage); 2) el archivo assets/logo-imcolmedica.png. Si no hay ninguno, el encabezado queda solo con el nombre. */
+function setLogo() {
+  const box = $('#logoBox'), img = $('#logoImg'); if (!box || !img) return;
+  const stored = lsGet(LS.logo), cands = ['assets/logo-imcolmedica.png'];
+  let i = 0; img.onload = () => { box.hidden = false; }; img.onerror = () => { i++; if (!stored && i < cands.length) img.src = cands[i]; else box.hidden = true; };
+  if (stored && typeof stored === 'string') img.src = stored; else img.src = cands[0];
+}
+function renderHeader() {
+  const m = state.meta;
+  $('#metaBox').innerHTML = `Última modificación: <b>${esc(fDate(m.lastModified))}</b><br>Fuente: <b>${esc(m.file)}</b> · ${M.years[0]}–${M.last} · ${fN(state.data.estados.length)} registros${state.lsOK ? '' : '<br><b>localStorage no disponible: los cambios no se conservarán</b>'}`;
+  const f = $('#adminLinks'); if (f) f.innerHTML = ENABLE_ADMIN ? '<a href="#" data-go="admdash">Estado de los datos</a> · <a href="#" data-go="adm">Administrar datos</a>' : '';
+  $$('#adminLinks a').forEach(a => a.onclick = e => { e.preventDefault(); ui.main = a.dataset.go; renderNav(); renderView(); window.scrollTo(0, 0); });
+}
+function renderNav() {
+  $('#subWrap').style.display = ui.main === 'dash' ? '' : 'none';
+  $('#subNav').innerHTML = SUBS.map(([k, l]) => `<button role="tab" data-sub="${k}" aria-selected="${ui.sub === k}">${esc(l())}</button>`).join('');
+  $$('#subNav button').forEach(b => b.onclick = () => { ui.sub = b.dataset.sub; renderNav(); renderView(); window.scrollTo(0, 0); });
+}
+function sanitizeUI() {
+  const ok = y => y === 'all' || M.years.includes(+y);
+  ['bg', 'er', 'fe'].forEach(k => { if (!ok(ui[k].y)) ui[k].y = 'all'; });
+  if (ui.main !== 'dash' && !ENABLE_ADMIN) ui.main = 'dash';
+}
+function renderView() {
+  const sy = window.scrollY, ae = document.activeElement, aid = ae && ae.id, ss = ae && ae.selectionStart;
+  sanitizeUI(); destroyCharts();
+  try { VIEWS[ui.main === 'dash' ? ui.sub : ui.main](); }
+  catch (e) { console.error(e); view().innerHTML = `<div class="callout">No se pudo dibujar esta vista con los datos actuales (${esc(e.message)}). Restaure los datos originales desde «Administrar datos».</div>`; }
+  if (ui.main !== 'dash') {
+    view().insertAdjacentHTML('afterbegin', '<p style="margin:0 0 12px"><button class="btn sec" id="backBtn" type="button">← Volver al dashboard</button></p>');
+    $('#backBtn').onclick = () => { ui.main = 'dash'; renderNav(); renderView(); window.scrollTo(0, 0); };
+  }
+  if (aid) { const n = document.getElementById(aid); if (n && ['INPUT', 'SELECT'].includes(n.tagName) && n.type !== 'range' && n.type !== 'file') { n.focus(); try { if (ss != null && n.type === 'text') n.setSelectionRange(ss, ss); } catch (e) {} } }
+  window.scrollTo(0, sy);
+}
+function init() {
+  if (!hasChart()) $('#cdnwarn').innerHTML = '<div class="banner">No se pudo cargar Chart.js: los gráficos no se mostrarán (tablas e indicadores siguen funcionando). Verifique la conexión a internet y recargue.</div>';
+  loadStored();
+  M = buildModel(state.data); ui.adm.authed = isAuthed();
+  setLogo(); renderHeader(); renderNav(); renderView();
+}
+init();
+</script>
+</body>
+</html>
